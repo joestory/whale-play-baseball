@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ContestStatus {
+  UPCOMING
+  DRAFTING
+  ACTIVE
+  COMPLETED
+}
+
+model Manager {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  picks      ContestPick[]
+  standings  Standing[]
+  draftSlots DraftSlot[]
+}
+
+model Contest {
+  id                   String        @id @default(cuid())
+  name                 String
+  weekNumber           Int
+  season               Int
+  metricName           String
+  metricDescription    String?
+  savantCsvUrl         String
+  metricConfig         Json
+  startDate            DateTime
+  endDate              DateTime
+  draftOpenAt          DateTime
+  draftCloseAt         DateTime
+  cascadeWindowMinutes Int           @default(60)
+  status               ContestStatus @default(UPCOMING)
+  lastPolledAt         DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  picks      ContestPick[]
+  standings  Standing[]
+  draftSlots DraftSlot[]
+
+  @@unique([season, weekNumber])
+}
+
+model ContestPick {
+  id        String   @id @default(cuid())
+  contestId String
+  managerId String
+  teamCode  String
+  pickedAt  DateTime @default(now())
+
+  contest Contest @relation(fields: [contestId], references: [id])
+  manager Manager @relation(fields: [managerId], references: [id])
+
+  @@unique([contestId, managerId])
+  @@unique([contestId, teamCode])
+}
+
+model Standing {
+  id          String   @id @default(cuid())
+  contestId   String
+  managerId   String
+  teamCode    String
+  metricValue Float    @default(0)
+  rank        Int?
+  updatedAt   DateTime @updatedAt
+
+  contest Contest @relation(fields: [contestId], references: [id])
+  manager Manager @relation(fields: [managerId], references: [id])
+
+  @@unique([contestId, managerId])
+}
+
+model DraftSlot {
+  id         String    @id @default(cuid())
+  contestId  String
+  managerId  String
+  pickOrder  Int
+  eligibleAt DateTime
+  pickedAt   DateTime?
+
+  contest Contest @relation(fields: [contestId], references: [id])
+  manager Manager @relation(fields: [managerId], references: [id])
+
+  @@unique([contestId, managerId])
+  @@unique([contestId, pickOrder])
+}
