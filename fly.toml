@@ -25,4 +25,4 @@ primary_region = "sjc"
   memory = "512mb"
 
 [deploy]
-  release_command = "node_modules/.bin/prisma migrate deploy"
+  release_command = "node node_modules/prisma/build/index.js migrate deploy"

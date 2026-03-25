@@ -29,7 +29,6 @@ COPY --from=builder /app/src/generated ./src/generated
 # Copy prisma CLI for release_command (not included in standalone node_modules)
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 USER nextjs
 
