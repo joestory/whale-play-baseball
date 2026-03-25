@@ -6,6 +6,9 @@ import { prisma } from '@/lib/db'
 import { contestDatesUpToToday, toStandingRows } from '@/lib/standings'
 import StandingsClient from './StandingsClient'
 
+// ISR: revalidate every 5 minutes — standings update nightly so even 300s is fine
+export const revalidate = 300
+
 // Cached per render — shared between generateMetadata and ContestPage
 const getContest = cache(async (id: string) => {
   return prisma.contest.findUnique({

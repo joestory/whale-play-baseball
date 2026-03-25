@@ -147,12 +147,14 @@ export default function StandingsClient({
   const sparklineRange = computeSparklineRange(standings, contestDates)
 
   const handleShare = async () => {
+    const url = window.location.href
     try {
-      await navigator.clipboard.writeText(window.location.href)
+      await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // clipboard unavailable — silently fail
+      // Clipboard API unavailable (non-HTTPS or WebView) — fall back to prompt
+      window.prompt('Copy this link:', url)
     }
   }
 
