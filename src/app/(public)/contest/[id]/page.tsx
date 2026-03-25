@@ -1,28 +1,54 @@
-import { prisma } from '@/lib/db'
-import { getTeam } from '@/lib/constants'
-import Link from 'next/link'
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import type { Metadata } from 'next'
+import { prisma } from '@/lib/db'
+import { contestDatesUpToToday, toStandingRows } from '@/lib/standings'
+import StandingsClient from './StandingsClient'
 
-export const revalidate = 300
-
-export default async function ContestPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-
-  const contest = await prisma.contest.findUnique({
+// Cached per render — shared between generateMetadata and ContestPage
+const getContest = cache(async (id: string) => {
+  return prisma.contest.findUnique({
     where: { id },
     include: {
       standings: {
         orderBy: { rank: 'asc' },
-        include: { manager: { select: { id: true, username: true } } },
+        include: { manager: { select: { id: true, username: true, icon: true } } },
       },
     },
   })
+})
 
+type Props = { params: Promise<{ id: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const contest = await getContest(id)
+  if (!contest) return { title: 'Contest not found' }
+
+  const leader = contest.standings[0]
+  const description = leader
+    ? `Leader: ${leader.manager.username} with ${leader.metricValue.toFixed(leader.metricValue % 1 === 0 ? 0 : 2)} ${contest.metricName}`
+    : `${contest.metricName} — standings update nightly`
+
+  return {
+    title: `${contest.name} — Week ${contest.weekNumber} Standings`,
+    description,
+    openGraph: {
+      title: `${contest.name} — Week ${contest.weekNumber} Standings`,
+      description,
+      siteName: 'Whale Play Baseball',
+    },
+  }
+}
+
+export default async function ContestPage({ params }: Props) {
+  const { id } = await params
+  const contest = await getContest(id)
   if (!contest) notFound()
+
+  const contestDates = contestDatesUpToToday(contest.startDate, contest.endDate)
+  const initialStandings = toStandingRows(contest.standings, contestDates)
 
   const statusLabel: Record<string, string> = {
     UPCOMING: 'Upcoming',
@@ -35,7 +61,9 @@ export default async function ContestPage({
     <div className="min-h-screen pb-24">
       <header className="bg-[#0a0a0a] border-b border-[#1f1f1f] px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center gap-3">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-300 text-xl transition-colors">←</Link>
+          <Link href="/" className="text-zinc-500 hover:text-zinc-300 text-xl transition-colors">
+            ←
+          </Link>
           <div>
             <h1 className="font-semibold text-white">{contest.name}</h1>
             <p className="text-xs text-zinc-500">{statusLabel[contest.status]}</p>
@@ -53,7 +81,9 @@ export default async function ContestPage({
           {contest.metricDescription && (
             <div className="flex justify-between text-sm">
               <span className="text-zinc-500">Description</span>
-              <span className="text-right max-w-[200px] text-zinc-300">{contest.metricDescription}</span>
+              <span className="text-right max-w-[200px] text-zinc-300">
+                {contest.metricDescription}
+              </span>
             </div>
           )}
           <div className="flex justify-between text-sm">
@@ -63,55 +93,17 @@ export default async function ContestPage({
               {new Date(contest.endDate).toLocaleDateString()}
             </span>
           </div>
-          {contest.lastPolledAt && (
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-500">Last updated</span>
-              <span className="text-zinc-600">
-                {new Date(contest.lastPolledAt).toLocaleString()}
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* Standings */}
-        <section>
-          <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
-            Standings
-          </h2>
-          {contest.standings.length > 0 ? (
-            <div className="space-y-2">
-              {contest.standings.map((s) => {
-                const team = getTeam(s.teamCode)
-                return (
-                  <div
-                    key={s.id}
-                    className="bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3 flex items-center gap-3"
-                  >
-                    <span className="text-xl font-bold text-zinc-700 w-8 text-center tabular-nums">
-                      {s.rank ?? '—'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-zinc-100 truncate">
-                        {s.manager.username}
-                      </p>
-                      <p className="text-xs text-zinc-500">{team?.name ?? s.teamCode}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-green-400 tabular-nums">
-                        {s.metricValue.toFixed(s.metricValue % 1 === 0 ? 0 : 2)}
-                      </p>
-                      <p className="text-xs text-zinc-600">{contest.metricName}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center text-zinc-600">
-              No standings yet
-            </div>
-          )}
-        </section>
+        {/* Standings — client component handles polling, sparklines, share */}
+        <StandingsClient
+          contestId={contest.id}
+          contestStatus={contest.status}
+          metricName={contest.metricName}
+          initialLastPolledAt={contest.lastPolledAt?.toISOString() ?? null}
+          initialStandings={initialStandings}
+          contestDates={contestDates}
+        />
       </div>
     </div>
   )
