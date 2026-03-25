@@ -26,9 +26,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
-# Copy prisma CLI for release_command (not included in standalone node_modules)
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Full node_modules so prisma migrate deploy works in the release_command.
+# Standalone's minimal node_modules is a subset; the full set is a superset that works for both.
+COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs
 
