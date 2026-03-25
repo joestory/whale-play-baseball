@@ -356,7 +356,7 @@ export default function ContestAdminClient({
           <Field label="Draft Opens">
             <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
           </Field>
-          <Field label="Draft Start">
+          <Field label="Draft Start (EST)">
             <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
           </Field>
         </div>
@@ -459,7 +459,10 @@ export default function ContestAdminClient({
           <div className="space-y-1">
             {standings.map((s) => (
               <div key={s.managerId} className="flex items-center gap-3 text-sm">
-                <span className="text-zinc-600 w-5 tabular-nums">{s.rank ?? '—'}</span>
+                <span className="text-zinc-600 w-5 tabular-nums">{(() => {
+                  const freq = standings.filter(x => x.rank === s.rank).length
+                  return s.rank == null ? '—' : freq > 1 ? `T${s.rank}` : s.rank
+                })()}</span>
                 <span className="flex-1 font-medium text-zinc-200">{s.username}</span>
                 <span className="text-zinc-500">{getTeam(s.teamCode)?.abbreviation ?? s.teamCode}</span>
                 <span className="font-bold text-green-400 tabular-nums">

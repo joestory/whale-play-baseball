@@ -146,6 +146,16 @@ export default function StandingsClient({
 
   const sparklineRange = computeSparklineRange(standings, contestDates)
 
+  // Build rank labels with T-prefix for ties (e.g. "T2" when multiple share rank 2)
+  const rankFreq = new Map<number, number>()
+  for (const s of standings) {
+    if (s.rank != null) rankFreq.set(s.rank, (rankFreq.get(s.rank) ?? 0) + 1)
+  }
+  function rankLabel(s: StandingRow) {
+    if (s.rank == null) return '—'
+    return rankFreq.get(s.rank)! > 1 ? `T${s.rank}` : String(s.rank)
+  }
+
   const handleShare = async () => {
     const url = window.location.href
     try {
@@ -187,7 +197,7 @@ export default function StandingsClient({
               className="bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3 flex items-center gap-3"
             >
               <span className="text-xl font-bold text-zinc-700 w-8 text-center tabular-nums">
-                {s.rank ?? '—'}
+                {rankLabel(s)}
               </span>
 
               <div className="flex items-center gap-2 flex-1 min-w-0">
