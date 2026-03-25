@@ -68,7 +68,6 @@ export default function SignInModal() {
       >
         <div>
           <h2 className="text-base font-semibold">Sign In</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">Choose your name, enter your password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">

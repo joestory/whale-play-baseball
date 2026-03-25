@@ -12,7 +12,7 @@ export default async function TopNav() {
           href="/"
           className="text-sm font-semibold text-[#fafafa] hover:text-white tracking-tight transition-colors"
         >
-          🐳 Whale Play ⚾
+          🐳&nbsp;&nbsp;Whale Play&nbsp;&nbsp;⚾
         </Link>
 
         {!session && <SignInModal />}
