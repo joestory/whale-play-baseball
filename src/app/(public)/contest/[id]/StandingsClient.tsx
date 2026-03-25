@@ -139,6 +139,8 @@ export default function StandingsClient({
 
   useEffect(() => {
     if (contestStatus !== 'ACTIVE') return
+    // poll is async — setState calls happen asynchronously inside fetch callback
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     poll()
     const interval = setInterval(poll, 60 * 60 * 1000) // hourly
     return () => clearInterval(interval)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { MetricConfig, MetricAggregationStep, RelatedMetric } from '@/types'
 
 // ─── Internal types ────────────────────────────────────────────────────────────
@@ -250,12 +250,10 @@ export default function MetricBuilderSection({
   const [related, setRelated] = useState<MetricDef[]>(parsed?.related ?? [])
   const effectiveHeaders = availableColumns ?? []
 
-  // Stable ref to avoid stale closure in effect
-  const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
-
   useEffect(() => {
-    onChangeRef.current(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+    onChange(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+  // onChange is a stable setState setter — safe to omit from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamColumn, dateColumn, primary, related, higherIsBetter])
 
   return (
