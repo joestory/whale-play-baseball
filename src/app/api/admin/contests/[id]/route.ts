@@ -34,6 +34,31 @@ export async function GET(
   return NextResponse.json(contest)
 }
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin()
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id } = await params
+  try {
+    await prisma.$transaction([
+      prisma.standing.deleteMany({ where: { contestId: id } }),
+      prisma.contestPick.deleteMany({ where: { contestId: id } }),
+      prisma.draftSlot.deleteMany({ where: { contestId: id } }),
+      prisma.contest.delete({ where: { id } }),
+    ])
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete contest'
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

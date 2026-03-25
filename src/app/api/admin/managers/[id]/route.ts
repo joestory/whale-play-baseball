@@ -23,6 +23,7 @@ export async function PATCH(
   const updateData: Record<string, unknown> = {}
 
   if (body.username !== undefined) updateData.username = body.username
+  if (body.icon !== undefined) updateData.icon = body.icon
   if (body.isAdmin !== undefined) updateData.isAdmin = body.isAdmin
   if (body.password) {
     updateData.passwordHash = await bcrypt.hash(body.password, 12)
@@ -32,7 +33,7 @@ export async function PATCH(
     const manager = await prisma.manager.update({
       where: { id },
       data: updateData,
-      select: { id: true, username: true, isAdmin: true, createdAt: true },
+      select: { id: true, username: true, icon: true, isAdmin: true, createdAt: true },
     })
     return NextResponse.json(manager)
   } catch (err) {

@@ -1,15 +1,54 @@
 import { parse } from 'csv-parse/sync'
 import { prisma } from './db'
-import { aggregateByTeam, computeRanks, parseMetricConfig } from './metrics'
+import {
+  aggregateByTeam,
+  aggregateByTeamAndDate,
+  aggregateRelatedByTeam,
+  computeRanks,
+  parseMetricConfig,
+} from './metrics'
 
 type CsvRow = Record<string, string>
+
+// Convert a Baseball Savant search URL to a CSV download URL
+export function searchUrlToCsvUrl(url: string): string {
+  const withoutAnchor = url.split('#')[0]
+  if (withoutAnchor.includes('/statcast_search/csv')) return withoutAnchor
+  return withoutAnchor.replace('/statcast_search?', '/statcast_search/csv?')
+}
+
+// Detect the year referenced in a Savant URL (from game_date_gt or hfSea params)
+export function detectYearFromUrl(url: string): number | null {
+  const dateMatch = url.match(/game_date_gt=(\d{4})-/)
+  if (dateMatch) return parseInt(dateMatch[1])
+  const seaMatch = url.match(/hfSea=(\d{4})(?:%7C|\|)/)
+  if (seaMatch) return parseInt(seaMatch[1])
+  return null
+}
+
+// Rewrite the year in a Savant URL's query string (path unchanged)
+export function rewriteUrlYear(url: string, fromYear: number, toYear: number): string {
+  const qIdx = url.indexOf('?')
+  if (qIdx === -1) return url
+  const path = url.slice(0, qIdx)
+  const query = url.slice(qIdx + 1).replace(new RegExp(String(fromYear), 'g'), String(toYear))
+  return `${path}?${query}`
+}
+
+// Fetch a CSV URL and return its column headers
+export async function fetchCsvHeaders(url: string): Promise<string[]> {
+  const csvText = await fetchCsv(url)
+  const rows = parseCsv(csvText)
+  if (rows.length === 0) return []
+  return Object.keys(rows[0])
+}
 
 export async function fetchCsv(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'WhalePlayBaseball/1.0' },
   })
   if (!res.ok) {
-    throw new Error(`Failed to fetch Baseball Savant CSV: ${res.status} ${res.statusText}`)
+    throw new Error(`Failed to fetch CSV: ${res.status} ${res.statusText}`)
   }
   return res.text()
 }
@@ -33,9 +72,11 @@ export async function pollContest(contestId: string): Promise<void> {
   const config = parseMetricConfig(contest.metricConfig)
   const csvText = await fetchCsv(contest.savantCsvUrl)
   const rows = parseCsv(csvText)
-  const teamTotals = aggregateByTeam(rows, config)
 
-  // Build managerId → metricValue map
+  const teamTotals = aggregateByTeam(rows, config)
+  const teamDaily = aggregateByTeamAndDate(rows, config)
+  const teamRelated = aggregateRelatedByTeam(rows, config)
+
   const managerValues = new Map<string, number>()
   for (const pick of contest.picks) {
     managerValues.set(pick.managerId, teamTotals.get(pick.teamCode) ?? 0)
@@ -43,7 +84,6 @@ export async function pollContest(contestId: string): Promise<void> {
 
   const ranks = computeRanks(managerValues, config.higherIsBetter !== false)
 
-  // Upsert standings in a transaction
   await prisma.$transaction([
     ...contest.picks.map((pick) =>
       prisma.standing.upsert({
@@ -54,11 +94,15 @@ export async function pollContest(contestId: string): Promise<void> {
           teamCode: pick.teamCode,
           metricValue: managerValues.get(pick.managerId) ?? 0,
           rank: ranks.get(pick.managerId) ?? null,
+          dailyValues: teamDaily.get(pick.teamCode) ?? {},
+          relatedValues: teamRelated.get(pick.teamCode) ?? {},
         },
         update: {
-          metricValue: managerValues.get(pick.managerId) ?? 0,
           teamCode: pick.teamCode,
+          metricValue: managerValues.get(pick.managerId) ?? 0,
           rank: ranks.get(pick.managerId) ?? null,
+          dailyValues: teamDaily.get(pick.teamCode) ?? {},
+          relatedValues: teamRelated.get(pick.teamCode) ?? {},
         },
       })
     ),

@@ -16,8 +16,9 @@ export async function GET() {
   }
 
   const managers = await prisma.manager.findMany({
+    where: { isAdmin: false },
     orderBy: { username: 'asc' },
-    select: { id: true, username: true, isAdmin: true, createdAt: true },
+    select: { id: true, username: true, icon: true, isAdmin: true, createdAt: true },
   })
   return NextResponse.json(managers)
 }
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12)
     const manager = await prisma.manager.create({
       data: { username, passwordHash, isAdmin },
-      select: { id: true, username: true, isAdmin: true, createdAt: true },
+      select: { id: true, username: true, icon: true, isAdmin: true, createdAt: true },
     })
     return NextResponse.json(manager, { status: 201 })
   } catch (err) {

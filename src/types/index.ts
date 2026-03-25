@@ -8,33 +8,23 @@ export type MetricAggregationStep =
       multiply?: number
     }
 
+export type RelatedMetric = {
+  name: string
+  columns: Record<string, string>
+  aggregation: MetricAggregationStep[]
+  resultAlias: string // which alias holds the final display value
+  unit: string
+}
+
 export type MetricConfig = {
   columns: Record<string, string> // alias → CSV column name e.g. { hr: "home_run" }
   teamColumn: string              // CSV column identifying the team e.g. "player_team"
+  dateColumn?: string             // CSV column for game date, used for daily tracking e.g. "game_date"
   aggregation: MetricAggregationStep[]
   unit: string                    // display unit e.g. "HR" or "%"
   higherIsBetter?: boolean        // default true; false for metrics like ERA
+  relatedMetrics?: RelatedMetric[]
 }
-
-// Example — Home Runs:
-// {
-//   columns: { hr: "home_run" },
-//   teamColumn: "player_team",
-//   aggregation: [{ alias: "hr", op: "SUM" }],
-//   unit: "HR"
-// }
-
-// Example — HBP%:
-// {
-//   columns: { hbp: "hit_by_pitch", bf: "batters_faced" },
-//   teamColumn: "player_team",
-//   aggregation: [
-//     { alias: "hbp", op: "SUM" },
-//     { alias: "bf", op: "SUM" },
-//     { alias: "result", op: "DIV", numerator: "hbp", denominator: "bf", multiply: 100 }
-//   ],
-//   unit: "%"
-// }
 
 export type DraftState = {
   contestId: string
@@ -43,9 +33,24 @@ export type DraftState = {
   slots: { managerId: string; pickOrder: number; eligibleAt: string; pickedAt: string | null }[]
 }
 
+export type StandingRow = {
+  id: string
+  rank: number | null
+  managerIcon: string
+  managerUsername: string
+  teamCode: string
+  teamName: string
+  teamLogo: string
+  metricValue: number
+  dailyValues: Record<string, number>
+  relatedValues: Record<string, number>
+}
+
 export type TeamInfo = {
   code: string
   name: string
   city: string
   abbreviation: string
+  logo: string
+  primaryColor: string
 }

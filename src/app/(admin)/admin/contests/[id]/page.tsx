@@ -26,7 +26,7 @@ export default async function AdminContestPage({
     }),
     prisma.manager.findMany({
       orderBy: { username: 'asc' },
-      select: { id: true, username: true },
+      select: { id: true, username: true, isAdmin: true },
     }),
   ])
 
@@ -40,11 +40,15 @@ export default async function AdminContestPage({
         weekNumber: contest.weekNumber,
         season: contest.season,
         metricName: contest.metricName,
+        metricDescription: contest.metricDescription ?? '',
         status: contest.status,
         savantCsvUrl: contest.savantCsvUrl,
+        metricConfig: JSON.stringify(contest.metricConfig, null, 2),
         lastPolledAt: contest.lastPolledAt?.toISOString() ?? null,
-        draftOpenAt: contest.draftOpenAt.toISOString(),
-        draftCloseAt: contest.draftCloseAt.toISOString(),
+        startDate: contest.startDate.toISOString().slice(0, 16),
+        endDate: contest.endDate.toISOString().slice(0, 16),
+        draftOpenAt: contest.draftOpenAt.toISOString().slice(0, 16),
+        draftCloseAt: contest.draftCloseAt.toISOString().slice(0, 16),
         cascadeWindowMinutes: contest.cascadeWindowMinutes,
       }}
       draftSlots={contest.draftSlots.map((s) => ({

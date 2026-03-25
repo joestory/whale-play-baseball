@@ -11,20 +11,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const username = credentials?.username as string | undefined
-        const password = credentials?.password as string | undefined
-        if (!username || !password) return null
+        try {
+          const username = credentials?.username as string | undefined
+          const password = credentials?.password as string | undefined
+          console.log('[auth] authorize called, username:', username)
+          if (!username || !password) { console.log('[auth] missing credentials'); return null }
 
-        const manager = await prisma.manager.findUnique({ where: { username } })
-        if (!manager) return null
+          const manager = await prisma.manager.findUnique({ where: { username } })
+          console.log('[auth] manager found:', !!manager)
+          if (!manager) return null
 
-        const valid = await bcrypt.compare(password, manager.passwordHash)
-        if (!valid) return null
+          const valid = await bcrypt.compare(password, manager.passwordHash)
+          console.log('[auth] password valid:', valid)
+          if (!valid) return null
 
-        return {
-          id: manager.id,
-          name: manager.username,
-          isAdmin: manager.isAdmin,
+          return { id: manager.id, name: manager.username, isAdmin: manager.isAdmin }
+        } catch (err) {
+          console.error('[auth] authorize error:', err)
+          return null
         }
       },
     }),
@@ -49,4 +53,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
   },
   session: { strategy: 'jwt' },
+  trustHost: true,
 })

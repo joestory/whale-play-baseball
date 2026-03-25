@@ -27,24 +27,27 @@ export default function LoginPage() {
     if (res?.error) {
       setError('Invalid username or password')
     } else {
-      router.push('/dashboard')
+      const session = await fetch('/api/auth/session').then((r) => r.json())
+      router.push(session?.user?.isAdmin ? '/admin' : '/dashboard')
     }
   }
 
+  const inputClass = 'w-full rounded-lg border border-[#262626] bg-[#0a0a0a] px-3 py-2.5 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-green-500 focus:outline-none transition-colors'
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#0a0a0a]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-800">⚾ Whale Play</h1>
-          <p className="text-slate-500 mt-1">Baseball Draft League</p>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Whale Play</h1>
+          <p className="text-zinc-500 text-sm mt-1">Baseball Draft League</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4"
+          className="bg-[#111111] rounded-2xl border border-[#1f1f1f] p-6 space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
               Username
             </label>
             <input
@@ -52,13 +55,13 @@ export default function LoginPage() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">
               Password
             </label>
             <input
@@ -66,19 +69,19 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputClass}
               required
             />
           </div>
 
           {error && (
-            <p className="text-red-600 text-sm text-center">{error}</p>
+            <p className="text-red-400 text-sm text-center">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl py-3 text-base transition-colors"
+            className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold rounded-lg py-2.5 text-base transition-colors"
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>

@@ -1,62 +1,131 @@
-import type { MetricAggregationStep, MetricConfig } from '@/types'
+import type { MetricAggregationStep, MetricConfig, RelatedMetric } from '@/types'
 import { normalizeTeam } from './constants'
 
 type Row = Record<string, string>
+
+type Accumulator = Map<string, number>
+
+function runAggregation(rows: Row[], columns: Record<string, string>, steps: MetricAggregationStep[]): Accumulator {
+  const acc: Accumulator = new Map()
+
+  for (const row of rows) {
+    for (const step of steps) {
+      if (step.op === 'SUM') {
+        const colName = columns[step.alias]
+        const val = parseFloat(row[colName] ?? '0') || 0
+        acc.set(step.alias, (acc.get(step.alias) ?? 0) + val)
+      } else if (step.op === 'COUNT') {
+        const colName = columns[step.alias]
+        const present = row[colName] !== undefined && row[colName] !== '' ? 1 : 0
+        acc.set(step.alias, (acc.get(step.alias) ?? 0) + present)
+      }
+    }
+  }
+
+  for (const step of steps) {
+    if (step.op === 'DIV') {
+      const num = acc.get(step.numerator) ?? 0
+      const den = acc.get(step.denominator) ?? 0
+      acc.set(step.alias, den === 0 ? 0 : (num / den) * (step.multiply ?? 1))
+    }
+  }
+
+  return acc
+}
+
+function finalValue(acc: Accumulator, steps: MetricAggregationStep[]): number {
+  const last = steps[steps.length - 1]
+  return acc.get(last.alias) ?? 0
+}
 
 /**
  * Aggregate CSV rows by team according to the contest's metricConfig.
  * Returns a map of team code → final metric value.
  */
 export function aggregateByTeam(rows: Row[], config: MetricConfig): Map<string, number> {
-  const teamAccumulators = new Map<string, Map<string, number>>()
+  const byTeam = new Map<string, Row[]>()
 
-  // First pass: collect SUM/COUNT accumulations per team
   for (const row of rows) {
     const team = normalizeTeam(row[config.teamColumn] ?? '')
     if (!team) continue
-
-    if (!teamAccumulators.has(team)) {
-      teamAccumulators.set(team, new Map())
-    }
-    const acc = teamAccumulators.get(team)!
-
-    for (const step of config.aggregation) {
-      if (step.op === 'SUM') {
-        const colName = config.columns[step.alias]
-        const val = parseFloat(row[colName] ?? '0') || 0
-        acc.set(step.alias, (acc.get(step.alias) ?? 0) + val)
-      } else if (step.op === 'COUNT') {
-        const colName = config.columns[step.alias]
-        const val = row[colName] !== undefined && row[colName] !== '' ? 1 : 0
-        acc.set(step.alias, (acc.get(step.alias) ?? 0) + val)
-      }
-      // DIV is handled in second pass
-    }
+    if (!byTeam.has(team)) byTeam.set(team, [])
+    byTeam.get(team)!.push(row)
   }
 
-  // Second pass: apply DIV operations and extract final value
   const results = new Map<string, number>()
+  for (const [team, teamRows] of byTeam) {
+    const acc = runAggregation(teamRows, config.columns, config.aggregation)
+    results.set(team, finalValue(acc, config.aggregation))
+  }
+  return results
+}
 
-  for (const [team, acc] of teamAccumulators) {
-    let finalValue: number | undefined
+/**
+ * Aggregate CSV rows by team and date.
+ * Returns team code → date string → cumulative metric value through that date.
+ * Dates are sorted ascending and values are cumulative sums.
+ */
+export function aggregateByTeamAndDate(
+  rows: Row[],
+  config: MetricConfig
+): Map<string, Record<string, number>> {
+  if (!config.dateColumn) return new Map()
 
-    for (const step of config.aggregation) {
-      if (step.op === 'DIV') {
-        const num = acc.get(step.numerator) ?? 0
-        const den = acc.get(step.denominator) ?? 0
-        const val = den === 0 ? 0 : (num / den) * (step.multiply ?? 1)
-        acc.set(step.alias, val)
-        finalValue = val
-      } else {
-        finalValue = acc.get(step.alias)
-      }
-    }
-
-    if (finalValue !== undefined) {
-      results.set(team, finalValue)
-    }
+  // Group rows by team → date
+  const byTeamDate = new Map<string, Map<string, Row[]>>()
+  for (const row of rows) {
+    const team = normalizeTeam(row[config.teamColumn] ?? '')
+    if (!team) continue
+    const date = (row[config.dateColumn] ?? '').slice(0, 10) // YYYY-MM-DD
+    if (!date) continue
+    if (!byTeamDate.has(team)) byTeamDate.set(team, new Map())
+    const dateMap = byTeamDate.get(team)!
+    if (!dateMap.has(date)) dateMap.set(date, [])
+    dateMap.get(date)!.push(row)
   }
 
+  const results = new Map<string, Record<string, number>>()
+  for (const [team, dateMap] of byTeamDate) {
+    const sortedDates = [...dateMap.keys()].sort()
+    let cumulative = 0
+    const daily: Record<string, number> = {}
+    for (const date of sortedDates) {
+      const acc = runAggregation(dateMap.get(date)!, config.columns, config.aggregation)
+      cumulative += finalValue(acc, config.aggregation)
+      daily[date] = cumulative
+    }
+    results.set(team, daily)
+  }
+  return results
+}
+
+/**
+ * Compute related metric values per team.
+ * Returns team code → { metricName: value }
+ */
+export function aggregateRelatedByTeam(
+  rows: Row[],
+  config: MetricConfig
+): Map<string, Record<string, number>> {
+  if (!config.relatedMetrics?.length) return new Map()
+
+  const byTeam = new Map<string, Row[]>()
+  for (const row of rows) {
+    const team = normalizeTeam(row[config.teamColumn] ?? '')
+    if (!team) continue
+    if (!byTeam.has(team)) byTeam.set(team, [])
+    byTeam.get(team)!.push(row)
+  }
+
+  const results = new Map<string, Record<string, number>>()
+  for (const [team, teamRows] of byTeam) {
+    const related: Record<string, number> = {}
+    for (const rm of config.relatedMetrics!) {
+      const acc = runAggregation(teamRows, rm.columns, rm.aggregation)
+      related[rm.name] = acc.get(rm.resultAlias) ?? 0
+    }
+    results.set(team, related)
+  }
   return results
 }
 

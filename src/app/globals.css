@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
+/* Force Tailwind dark: variant to respond to .dark class on <html> */
+@variant dark (&:is(.dark *));
+
+/* Always dark — no light mode */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: #0a0a0a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0a0a0a;
+  color: #fafafa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark input defaults */
+input,
+select,
+textarea {
+  background-color: #0a0a0a;
+  color: #fafafa;
+  -webkit-text-fill-color: #fafafa;
+  border-color: #262626;
+}
+
+/* Date/time inputs: use dark browser chrome */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  color-scheme: dark;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #52525b;
+  -webkit-text-fill-color: #52525b;
+  opacity: 1;
+}
+
+/* Subtle scrollbar tinting */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }

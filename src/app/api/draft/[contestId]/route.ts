@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { Prisma } from '@/generated/prisma/client'
 
 export async function POST(
   req: NextRequest,
@@ -66,6 +67,13 @@ export async function POST(
 
     return NextResponse.json(result)
   } catch (err) {
+    // Unique constraint on (contestId, teamCode) — race condition, team was just taken
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'That team was just taken — please pick another' },
+        { status: 409 }
+      )
+    }
     const message = err instanceof Error ? err.message : 'Failed to submit pick'
     const status = message === 'Unauthorized' ? 401 : 400
     return NextResponse.json({ error: message }, { status })

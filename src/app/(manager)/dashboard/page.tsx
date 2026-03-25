@@ -35,101 +35,92 @@ export default async function DashboardPage() {
   )
 
   return (
-    <div>
-      <header className="bg-blue-900 text-white px-4 py-5">
-        <div className="max-w-lg mx-auto">
-          <p className="text-blue-200 text-sm">Welcome back,</p>
-          <h1 className="text-xl font-bold">{session!.user.name}</h1>
-        </div>
-      </header>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Current contest status */}
-        {currentContest && (
-          <section>
-            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-              Current Contest
-            </h2>
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-bold text-slate-800">{currentContest.name}</p>
-                  <p className="text-sm text-slate-500">{currentContest.metricName}</p>
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  currentContest.status === 'DRAFTING'
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {currentContest.status === 'DRAFTING' ? 'Draft Open' : 'Live'}
-                </span>
-              </div>
-
-              <div className="mt-4">
-                {currentPick ? (
-                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-100">
-                    <span className="text-green-600 text-xl">✓</span>
-                    <div>
-                      <p className="text-sm font-medium text-green-800">Pick submitted</p>
-                      <p className="text-sm text-green-600">
-                        {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
-                      </p>
-                    </div>
-                  </div>
-                ) : currentContest.status === 'DRAFTING' ? (
-                  <Link
-                    href={`/draft/${currentContest.id}`}
-                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 transition-colors"
-                  >
-                    Make Your Pick →
-                  </Link>
-                ) : (
-                  <p className="text-sm text-slate-400 text-center">No pick made</p>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Pick history */}
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      {/* Current contest status */}
+      {currentContest && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-            Pick History
+          <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+            Current Contest
           </h2>
-          {picks.length > 0 ? (
-            <div className="space-y-2">
-              {picks.map((pick) => (
-                <Link
-                  key={pick.id}
-                  href={`/contest/${pick.contestId}`}
-                  className="block bg-white rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-800">{pick.contest.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {getTeam(pick.teamCode)?.name ?? pick.teamCode} ·{' '}
-                        {pick.contest.metricName}
-                      </p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      pick.contest.status === 'COMPLETED'
-                        ? 'bg-slate-100 text-slate-500'
-                        : 'bg-green-100 text-green-700'
-                    }`}>
-                      {pick.contest.status === 'COMPLETED' ? 'Final' : 'Live'}
-                    </span>
+          <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-white">{currentContest.name}</p>
+                <p className="text-sm text-zinc-500">{currentContest.metricName}</p>
+              </div>
+              <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
+                currentContest.status === 'DRAFTING'
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  : 'bg-green-500/10 text-green-400 border border-green-500/20'
+              }`}>
+                {currentContest.status === 'DRAFTING' ? 'Draft Open' : 'Live'}
+              </span>
+            </div>
+
+            <div className="mt-4">
+              {currentPick ? (
+                <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <span className="text-green-400 text-base">✓</span>
+                  <div>
+                    <p className="text-sm font-medium text-green-300">Pick submitted</p>
+                    <p className="text-sm text-green-500">
+                      {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
+                    </p>
                   </div>
+                </div>
+              ) : currentContest.status === 'DRAFTING' ? (
+                <Link
+                  href={`/draft/${currentContest.id}`}
+                  className="block w-full text-center bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg py-3 transition-colors"
+                >
+                  Make Your Pick →
                 </Link>
-              ))}
+              ) : (
+                <p className="text-sm text-zinc-600 text-center">No pick made</p>
+              )}
             </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-slate-400">
-              No picks yet
-            </div>
-          )}
+          </div>
         </section>
-      </div>
+      )}
+
+      {/* Pick history */}
+      <section>
+        <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
+          Pick History
+        </h2>
+        {picks.length > 0 ? (
+          <div className="space-y-2">
+            {picks.map((pick) => (
+              <Link
+                key={pick.id}
+                href={`/contest/${pick.contestId}`}
+                className="block bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3 hover:bg-[#1a1a1a] transition-colors"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-zinc-100 truncate">{pick.contest.name}</p>
+                    <p className="text-xs text-zinc-500">
+                      {getTeam(pick.teamCode)?.name ?? pick.teamCode} ·{' '}
+                      {pick.contest.metricName}
+                    </p>
+                  </div>
+                  <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
+                    pick.contest.status === 'COMPLETED'
+                      ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                      : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  }`}>
+                    {pick.contest.status === 'COMPLETED' ? 'Final' : 'Live'}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center text-zinc-600">
+            No picks yet
+          </div>
+        )}
+      </section>
     </div>
   )
 }
