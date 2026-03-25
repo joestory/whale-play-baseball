@@ -9,7 +9,7 @@ import Countdown from '@/components/Countdown'
 import StandingsAccordion from '@/components/StandingsAccordion'
 import type { StandingRow } from '@/types'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
   const today = new Date().toISOString().slice(0, 10)

@@ -145,7 +145,11 @@ export function computeRanks(
   )
 
   const ranks = new Map<string, number>()
-  entries.forEach(([id], i) => ranks.set(id, i + 1))
+  let rank = 1
+  entries.forEach(([id, val], i) => {
+    if (i > 0 && val !== entries[i - 1][1]) rank = i + 1
+    ranks.set(id, rank)
+  })
   return ranks
 }
 

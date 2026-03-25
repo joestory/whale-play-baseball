@@ -8,7 +8,7 @@ export default function TopNav() {
           href="/"
           className="text-sm font-semibold text-[#fafafa] hover:text-white tracking-tight transition-colors"
         >
-          Whale Play
+          🐳 Whale Play ⚾
         </Link>
       </div>
     </header>
