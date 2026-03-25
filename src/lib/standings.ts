@@ -16,7 +16,7 @@ export function contestDatesUpToToday(startDate: Date, endDate: Date): string[] 
     const d = cursor.toISOString().slice(0, 10)
     if (d > todayET) break
     dates.push(d)
-    cursor.setDate(cursor.getDate() + 1)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return dates
 }
