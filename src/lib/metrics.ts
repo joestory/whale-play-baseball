@@ -87,12 +87,14 @@ export function aggregateByTeamAndDate(
   const results = new Map<string, Record<string, number>>()
   for (const [team, dateMap] of byTeamDate) {
     const sortedDates = [...dateMap.keys()].sort()
-    let cumulative = 0
     const daily: Record<string, number> = {}
+    const accumulatedRows: Row[] = []
     for (const date of sortedDates) {
-      const acc = runAggregation(dateMap.get(date)!, config.columns, config.aggregation)
-      cumulative += finalValue(acc, config.aggregation)
-      daily[date] = cumulative
+      // Accumulate all rows through this date, then apply aggregation once.
+      // This ensures DIV metrics (K%, Whiff%, ERA) show running ratio, not summed ratios.
+      accumulatedRows.push(...dateMap.get(date)!)
+      const acc = runAggregation(accumulatedRows, config.columns, config.aggregation)
+      daily[date] = finalValue(acc, config.aggregation)
     }
     results.set(team, daily)
   }
