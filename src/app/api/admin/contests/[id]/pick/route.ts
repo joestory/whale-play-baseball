@@ -55,3 +55,30 @@ export async function POST(
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdmin()
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id: contestId } = await params
+  const body = await req.json()
+  const { managerId } = body as { managerId?: string }
+
+  if (!managerId) {
+    return NextResponse.json({ error: 'managerId is required' }, { status: 400 })
+  }
+
+  await prisma.$transaction([
+    prisma.contestPick.deleteMany({ where: { contestId, managerId } }),
+    prisma.standing.deleteMany({ where: { contestId, managerId } }),
+    prisma.draftSlot.updateMany({ where: { contestId, managerId }, data: { pickedAt: null } }),
+  ])
+
+  return NextResponse.json({ success: true })
+}

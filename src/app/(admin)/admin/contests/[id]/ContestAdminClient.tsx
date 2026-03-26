@@ -241,7 +241,9 @@ export default function ContestAdminClient({
     return m
   })
   const [savingPickFor, setSavingPickFor] = useState<string | null>(null)
+  const [clearingPickFor, setClearingPickFor] = useState<string | null>(null)
   const [pickError, setPickError] = useState<Record<string, string>>({})
+  const savedPickIds = new Set(picks.map((p) => p.managerId))
 
   async function handleSetPick(managerId: string) {
     const teamCode = manualPicks[managerId]
@@ -264,6 +266,29 @@ export default function ContestAdminClient({
       setPickError((e) => ({ ...e, [managerId]: 'Network error' }))
     } finally {
       setSavingPickFor(null)
+    }
+  }
+
+  async function handleClearPick(managerId: string) {
+    setClearingPickFor(managerId)
+    setPickError((e) => ({ ...e, [managerId]: '' }))
+    try {
+      const res = await fetch(`/api/admin/contests/${contest.id}/pick`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ managerId }),
+      })
+      if (res.ok) {
+        setManualPicks((m) => { const next = { ...m }; delete next[managerId]; return next })
+        router.refresh()
+      } else {
+        const d = await res.json()
+        setPickError((e) => ({ ...e, [managerId]: d.error ?? 'Failed to clear pick' }))
+      }
+    } catch {
+      setPickError((e) => ({ ...e, [managerId]: 'Network error' }))
+    } finally {
+      setClearingPickFor(null)
     }
   }
 
@@ -531,6 +556,8 @@ export default function ContestAdminClient({
           {orderedIds.map((id, i) => {
             const currentTeam = manualPicks[id]
             const isSaving = savingPickFor === id
+            const isClearing = clearingPickFor === id
+            const hasSavedPick = savedPickIds.has(id)
             const err = pickError[id]
             return (
               <div key={id} className="space-y-1.5">
@@ -560,6 +587,16 @@ export default function ContestAdminClient({
                   >
                     {isSaving ? '…' : 'Set'}
                   </button>
+                  {hasSavedPick && (
+                    <button
+                      type="button"
+                      onClick={() => handleClearPick(id)}
+                      disabled={isClearing}
+                      className="flex-shrink-0 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                    >
+                      {isClearing ? '…' : 'Clear'}
+                    </button>
+                  )}
                 </div>
                 {err && <p className="text-xs text-red-400 pl-7">{err}</p>}
               </div>
