@@ -33,6 +33,7 @@ async function getContestData() {
         orderBy: { rank: 'asc' },
         include: { manager: { select: { id: true, username: true, icon: true } } },
       },
+      picks: { select: { managerId: true } },
     },
   })
   if (active) return { contest: active, upcoming: null }
@@ -60,7 +61,8 @@ export default async function HomePage() {
   if (contest) {
     contestDates = contestDatesUpToToday(contest.startDate, contest.endDate)
     const dateSet = new Set(contestDates)
-    standingRows = contest.standings.map((s) => {
+    const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
+    standingRows = contest.standings.filter((s) => pickedManagerIds.has(s.managerId)).map((s) => {
       const team = getTeam(s.teamCode)
       const raw = (s.dailyValues ?? {}) as Record<string, number>
       return {

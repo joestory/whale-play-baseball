@@ -530,11 +530,14 @@ export default function ContestAdminClient({
       </div>
 
       {/* ── Standings ── */}
-      {standings.length > 0 && (
+      {standings.length > 0 && (() => {
+        const pickedManagerIds = new Set(picks.map((p) => p.managerId))
+        const visibleStandings = standings.filter((s) => pickedManagerIds.has(s.managerId))
+        return visibleStandings.length > 0 && (
         <div className={`${card} p-4 space-y-3`}>
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Current Standings</h2>
           <div className="space-y-1">
-            {standings.map((s) => (
+            {visibleStandings.map((s) => (
               <div key={s.managerId} className="flex items-center gap-3 text-sm">
                 <span className="text-zinc-600 w-5 tabular-nums">{s.rank ?? '—'}</span>
                 <span className="flex-1 font-medium text-zinc-200">{s.username}</span>
@@ -546,7 +549,8 @@ export default function ContestAdminClient({
             ))}
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
