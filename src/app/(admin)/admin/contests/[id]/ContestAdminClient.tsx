@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getTeam } from '@/lib/constants'
+import { getTeam, MLB_TEAMS } from '@/lib/constants'
 import type { MetricConfig } from '@/types'
 import MetricBuilderSection from '@/components/MetricBuilderSection'
 
@@ -206,6 +206,39 @@ export default function ContestAdminClient({
   }
 
   const nonAdminIds = new Set(nonAdminManagers.map((m) => m.id))
+
+  // Manual pick overrides
+  const [manualPicks, setManualPicks] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {}
+    for (const p of picks) m[p.managerId] = p.teamCode
+    return m
+  })
+  const [savingPickFor, setSavingPickFor] = useState<string | null>(null)
+  const [pickError, setPickError] = useState<Record<string, string>>({})
+
+  async function handleSetPick(managerId: string) {
+    const teamCode = manualPicks[managerId]
+    if (!teamCode) return
+    setSavingPickFor(managerId)
+    setPickError((e) => ({ ...e, [managerId]: '' }))
+    try {
+      const res = await fetch(`/api/admin/contests/${contest.id}/pick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ managerId, teamCode }),
+      })
+      if (res.ok) {
+        router.refresh()
+      } else {
+        const d = await res.json()
+        setPickError((e) => ({ ...e, [managerId]: d.error ?? 'Failed to set pick' }))
+      }
+    } catch {
+      setPickError((e) => ({ ...e, [managerId]: 'Network error' }))
+    } finally {
+      setSavingPickFor(null)
+    }
+  }
 
   // Draft order editor — admins excluded
   const [orderedIds, setOrderedIds] = useState<string[]>(
@@ -419,21 +452,41 @@ export default function ContestAdminClient({
       {/* ── Draft order ── */}
       <div className={`${card} p-4 space-y-3`}>
         <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Draft Order</h2>
-        <div className="space-y-1">
+        <div className="space-y-2">
           {orderedIds.map((id, i) => {
-            const pick = picks.find((p) => p.managerId === id)
+            const currentTeam = manualPicks[id]
+            const isSaving = savingPickFor === id
+            const err = pickError[id]
             return (
-              <div key={id} className="flex items-center gap-2 py-1">
-                <span className="text-zinc-600 text-sm w-5 tabular-nums">{i + 1}</span>
-                <span className="flex-1 text-sm font-medium text-zinc-200">{idToUsername[id] ?? id}</span>
-                {pick && (
-                  <span className="text-xs text-green-400 font-medium">
-                    {getTeam(pick.teamCode)?.abbreviation ?? pick.teamCode} ✓
-                  </span>
-                )}
-                <button onClick={() => moveUp(i)} disabled={i === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↑</button>
-                <button onClick={() => moveDown(i)} disabled={i === orderedIds.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↓</button>
-                <button onClick={() => removeFromOrder(i)} className="text-zinc-700 hover:text-red-400 px-1 text-sm transition-colors">✕</button>
+              <div key={id} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-600 text-sm w-5 tabular-nums">{i + 1}</span>
+                  <span className="flex-1 text-sm font-medium text-zinc-200">{idToUsername[id] ?? id}</span>
+                  <button onClick={() => moveUp(i)} disabled={i === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↑</button>
+                  <button onClick={() => moveDown(i)} disabled={i === orderedIds.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↓</button>
+                  <button onClick={() => removeFromOrder(i)} className="text-zinc-700 hover:text-red-400 px-1 text-sm transition-colors">✕</button>
+                </div>
+                <div className="flex items-center gap-2 pl-7">
+                  <select
+                    value={currentTeam ?? ''}
+                    onChange={(e) => setManualPicks((m) => ({ ...m, [id]: e.target.value }))}
+                    className="flex-1 rounded-lg border border-[#262626] bg-[#0a0a0a] px-2 py-1.5 text-xs text-zinc-100 focus:border-green-500 focus:outline-none transition-colors appearance-none"
+                  >
+                    <option value="">— select team —</option>
+                    {MLB_TEAMS.map((t) => (
+                      <option key={t.code} value={t.code}>{t.abbreviation} — {t.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleSetPick(id)}
+                    disabled={isSaving || !currentTeam}
+                    className="flex-shrink-0 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {isSaving ? '…' : 'Set'}
+                  </button>
+                </div>
+                {err && <p className="text-xs text-red-400 pl-7">{err}</p>}
               </div>
             )
           })}
