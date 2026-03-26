@@ -57,6 +57,36 @@ const inputClass =
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+// Interpret a plain "YYYY-MM-DDTHH:mm" string as America/New_York wall-clock time and
+// return the equivalent date/time in the user's local timezone.
+function nycStringToLocalParts(nycStr: string): { date: string; time: string } {
+  const [datePart, timePart] = nycStr.split('T')
+  const targetHHmm = timePart.slice(0, 5)
+  for (const offset of ['-05:00', '-04:00']) {
+    const d = new Date(`${datePart}T${targetHHmm}:00${offset}`)
+    const nycTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(d)
+    if (nycTime === targetHHmm) {
+      return {
+        date: d.toLocaleDateString('en-CA'),
+        time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      }
+    }
+  }
+  return { date: datePart, time: targetHHmm }
+}
+
+// Convert user's local date+time to an America/New_York "YYYY-MM-DDTHH:mm" string.
+function localPartsToNYCString(localDate: string, localTime: string): string {
+  const d = new Date(`${localDate}T${localTime}:00`)
+  const nycDate = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const nycTime = d.toLocaleTimeString('en-GB', {
+    timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  return `${nycDate}T${nycTime}`
+}
+
 function MonthDayInput({ value, onChange, required }: { value: string; onChange: (v: string) => void; required?: boolean }) {
   const month = value.slice(5, 7)
   const day = value.slice(8, 10)
@@ -122,7 +152,8 @@ export default function ContestAdminClient({
 
   const nonAdminManagers = allManagers.filter((m) => !m.isAdmin)
 
-  // Edit form state
+  // Edit form state — draft time converted from stored NYC string to user's local time
+  const localDraft = nycStringToLocalParts(contest.draftOpenAt)
   const [form, setForm] = useState({
     name: contest.name,
     weekNumber: String(contest.weekNumber),
@@ -132,8 +163,8 @@ export default function ContestAdminClient({
     savantCsvUrl: contest.savantCsvUrl,
     startDate: contest.startDate,
     endDate: contest.endDate,
-    draftOpenAt: contest.draftOpenAt.slice(0, 10),
-    draftTime: contest.draftOpenAt.slice(11, 16),
+    draftOpenAt: localDraft.date,
+    draftTime: localDraft.time,
     cascadeWindowMinutes: String(contest.cascadeWindowMinutes),
   })
 
@@ -200,8 +231,13 @@ export default function ContestAdminClient({
 
     setSavingEdit(true)
     try {
-      const draftOpenAt = `${form.draftOpenAt}T${form.draftTime}`
-      const draftCloseAt = new Date(new Date(draftOpenAt).getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      const draftOpenAt = localPartsToNYCString(form.draftOpenAt, form.draftTime)
+      const draftLocalMs = new Date(`${form.draftOpenAt}T${form.draftTime}:00`).getTime()
+      const closeLocal = new Date(draftLocalMs + 3 * 60 * 60 * 1000)
+      const draftCloseAt = localPartsToNYCString(
+        closeLocal.toLocaleDateString('en-CA'),
+        closeLocal.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      )
       const res = await fetch(`/api/admin/contests/${contest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -450,7 +486,7 @@ export default function ContestAdminClient({
         <Field label="Draft Opens">
           <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
         </Field>
-        <Field label="Draft Start (EST)">
+        <Field label="Draft Start">
           <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
         </Field>
         <p className="text-xs text-zinc-600">Draft closes 3 hrs after open</p>
