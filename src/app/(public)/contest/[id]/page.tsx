@@ -17,7 +17,7 @@ export default async function ContestPage({
     include: {
       standings: {
         orderBy: { rank: 'asc' },
-        include: { manager: { select: { id: true, username: true } } },
+        include: { manager: { select: { id: true, username: true, icon: true } } },
       },
     },
   })
@@ -92,7 +92,7 @@ export default async function ContestPage({
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-zinc-100 truncate">
-                        {s.manager.username}
+                        {s.manager.icon ?? '⚾'} {s.manager.username}
                       </p>
                       <p className="text-xs text-zinc-500">{team?.name ?? s.teamCode}</p>
                     </div>
