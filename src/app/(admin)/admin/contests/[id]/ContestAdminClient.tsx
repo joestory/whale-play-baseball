@@ -13,6 +13,7 @@ type ContestInfo = {
   season: number
   metricName: string
   metricDescription: string
+  commissionerMessage: string
   sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
@@ -140,6 +141,7 @@ export default function ContestAdminClient({
     season: String(contest.season),
     metricName: contest.metricName,
     metricDescription: contest.metricDescription,
+    commissionerMessage: contest.commissionerMessage,
     savantCsvUrl: contest.savantCsvUrl,
     startDate: contest.startDate,
     endDate: contest.endDate,
@@ -448,8 +450,21 @@ export default function ContestAdminClient({
           <input type="text" value={form.metricName} onChange={(e) => set('metricName', e.target.value)} className={inputClass} required />
         </Field>
 
+        <Field label="Commissioner Message">
+          <textarea
+            value={form.commissionerMessage}
+            onChange={(e) => set('commissionerMessage', e.target.value)}
+            className={inputClass + ' min-h-[120px] resize-y'}
+            placeholder="Message to display on upcoming draft cards…"
+          />
+        </Field>
+
         <Field label="Sweepstakes Description">
-          <input type="text" value={form.metricDescription} onChange={(e) => set('metricDescription', e.target.value)} className={inputClass} />
+          <textarea
+            value={form.metricDescription}
+            onChange={(e) => set('metricDescription', e.target.value)}
+            className={inputClass + ' min-h-[100px] resize-y'}
+          />
         </Field>
 
         <Field label="Sweepstakes Photo">

@@ -41,6 +41,7 @@ export default async function AdminContestPage({
         season: contest.season,
         metricName: contest.metricName,
         metricDescription: contest.metricDescription ?? '',
+        commissionerMessage: contest.commissionerMessage ?? '',
         status: contest.status,
         savantCsvUrl: contest.savantCsvUrl,
         metricConfig: JSON.stringify(contest.metricConfig, null, 2),

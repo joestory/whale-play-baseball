@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         season: Number(body.season),
         metricName: body.metricName,
         metricDescription: body.metricDescription ?? null,
+        commissionerMessage: body.commissionerMessage ?? null,
         savantCsvUrl: body.savantCsvUrl,
         metricConfig: body.metricConfig,
         startDate: new Date(body.startDate),

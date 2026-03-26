@@ -41,7 +41,7 @@ async function getContestData() {
   const upcoming = await prisma.contest.findFirst({
     where: { status: 'UPCOMING' },
     orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
-    select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, sweepstakesPhoto: true, draftOpenAt: true },
+    select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, commissionerMessage: true, sweepstakesPhoto: true, draftOpenAt: true },
   })
   return { contest: null, upcoming }
 }
@@ -130,6 +130,12 @@ export default async function HomePage() {
               <p className="text-sm font-medium text-zinc-400">Draft opens in</p>
               <Countdown target={upcoming.draftOpenAt.toISOString()} />
             </div>
+            {upcoming.commissionerMessage && (
+              <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">Commissioner</p>
+                <p className="text-sm text-zinc-300 whitespace-pre-wrap">{upcoming.commissionerMessage}</p>
+              </div>
+            )}
             {(upcoming.metricDescription || upcoming.sweepstakesPhoto) && (
               <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] overflow-hidden">
                 {upcoming.sweepstakesPhoto && (

@@ -77,6 +77,7 @@ export async function PATCH(
   if (body.name !== undefined) updateData.name = body.name
   if (body.metricName !== undefined) updateData.metricName = body.metricName
   if (body.metricDescription !== undefined) updateData.metricDescription = body.metricDescription
+  if (body.commissionerMessage !== undefined) updateData.commissionerMessage = body.commissionerMessage
   if (body.savantCsvUrl !== undefined) updateData.savantCsvUrl = body.savantCsvUrl
   if (body.metricConfig !== undefined) updateData.metricConfig = body.metricConfig
   if (body.startDate !== undefined) updateData.startDate = new Date(body.startDate)
