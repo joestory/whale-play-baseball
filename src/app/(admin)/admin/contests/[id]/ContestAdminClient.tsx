@@ -325,14 +325,12 @@ export default function ContestAdminClient({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Contest #">
-            <input type="number" value={form.weekNumber} onChange={(e) => set('weekNumber', e.target.value)} className={inputClass} min={1} required />
-          </Field>
-          <Field label="Season">
-            <input type="number" value={form.season} onChange={(e) => set('season', e.target.value)} className={inputClass} required />
-          </Field>
-        </div>
+        <Field label="Contest #">
+          <input type="number" value={form.weekNumber} onChange={(e) => set('weekNumber', e.target.value)} className={inputClass} min={1} required />
+        </Field>
+        <Field label="Season">
+          <input type="number" value={form.season} onChange={(e) => set('season', e.target.value)} className={inputClass} required />
+        </Field>
 
         <Field label="Contest Name">
           <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} className={inputClass} required />
@@ -346,20 +344,18 @@ export default function ContestAdminClient({
           <input type="text" value={form.metricDescription} onChange={(e) => set('metricDescription', e.target.value)} className={inputClass} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Start Date">
-            <MonthDayInput value={form.startDate} onChange={(v) => set('startDate', v)} required />
-          </Field>
-          <Field label="End Date">
-            <MonthDayInput value={form.endDate} onChange={(v) => set('endDate', v)} required />
-          </Field>
-          <Field label="Draft Opens">
-            <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
-          </Field>
-          <Field label="Draft Start">
-            <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
-          </Field>
-        </div>
+        <Field label="Start Date">
+          <MonthDayInput value={form.startDate} onChange={(v) => set('startDate', v)} required />
+        </Field>
+        <Field label="End Date">
+          <MonthDayInput value={form.endDate} onChange={(v) => set('endDate', v)} required />
+        </Field>
+        <Field label="Draft Opens">
+          <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
+        </Field>
+        <Field label="Draft Start">
+          <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
+        </Field>
         <p className="text-xs text-zinc-600">Draft closes 3 hrs after open</p>
 
         <Field label="Baseball Savant URL" hint="Paste the backdated URL (prior year dates) — Fetch will load columns and rewrite to this season's URL">
