@@ -18,6 +18,7 @@ const getContest = cache(async (id: string) => {
         orderBy: { rank: 'asc' },
         include: { manager: { select: { id: true, username: true, icon: true } } },
       },
+      picks: { select: { managerId: true } },
     },
   })
 })
@@ -51,7 +52,11 @@ export default async function ContestPage({ params }: Props) {
   if (!contest) notFound()
 
   const contestDates = contestDatesUpToToday(contest.startDate, contest.endDate)
-  const initialStandings = toStandingRows(contest.standings, contestDates)
+  const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
+  const initialStandings = toStandingRows(
+    contest.standings.filter((s) => pickedManagerIds.has(s.managerId)),
+    contestDates,
+  )
 
   const statusLabel: Record<string, string> = {
     UPCOMING: 'Upcoming',
@@ -107,6 +112,7 @@ export default async function ContestPage({ params }: Props) {
           initialStandings={initialStandings}
           contestDates={contestDates}
         />
+
       </div>
     </div>
   )

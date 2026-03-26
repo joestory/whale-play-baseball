@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getTeam } from '@/lib/constants'
+import { getTeam, MLB_TEAMS } from '@/lib/constants'
 import type { MetricConfig } from '@/types'
 import MetricBuilderSection from '@/components/MetricBuilderSection'
 
@@ -106,6 +106,8 @@ export default function ContestAdminClient({
   const [polling, setPolling] = useState(false)
   const [pollMessage, setPollMessage] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)
+  const [settingDraftOrder, setSettingDraftOrder] = useState(false)
+  const [draftOrderMessage, setDraftOrderMessage] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
   const [editSuccess, setEditSuccess] = useState(false)
@@ -207,6 +209,39 @@ export default function ContestAdminClient({
 
   const nonAdminIds = new Set(nonAdminManagers.map((m) => m.id))
 
+  // Manual pick overrides
+  const [manualPicks, setManualPicks] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {}
+    for (const p of picks) m[p.managerId] = p.teamCode
+    return m
+  })
+  const [savingPickFor, setSavingPickFor] = useState<string | null>(null)
+  const [pickError, setPickError] = useState<Record<string, string>>({})
+
+  async function handleSetPick(managerId: string) {
+    const teamCode = manualPicks[managerId]
+    if (!teamCode) return
+    setSavingPickFor(managerId)
+    setPickError((e) => ({ ...e, [managerId]: '' }))
+    try {
+      const res = await fetch(`/api/admin/contests/${contest.id}/pick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ managerId, teamCode }),
+      })
+      if (res.ok) {
+        router.refresh()
+      } else {
+        const d = await res.json()
+        setPickError((e) => ({ ...e, [managerId]: d.error ?? 'Failed to set pick' }))
+      }
+    } catch {
+      setPickError((e) => ({ ...e, [managerId]: 'Network error' }))
+    } finally {
+      setSavingPickFor(null)
+    }
+  }
+
   // Draft order editor — admins excluded
   const [orderedIds, setOrderedIds] = useState<string[]>(
     draftSlots.length > 0
@@ -279,6 +314,28 @@ export default function ContestAdminClient({
     }
   }
 
+  async function handleSetDraftOrderFromPrior() {
+    setSettingDraftOrder(true)
+    setDraftOrderMessage('')
+    try {
+      const res = await fetch(`/api/admin/draft-order/${contest.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromPriorStandings: true }),
+      })
+      if (res.ok) {
+        router.refresh()
+      } else {
+        const d = await res.json()
+        setDraftOrderMessage(d.error ?? 'Failed to set draft order')
+      }
+    } catch {
+      setDraftOrderMessage('Network error')
+    } finally {
+      setSettingDraftOrder(false)
+    }
+  }
+
   async function handleDelete() {
     if (!confirm(`Delete "${contest.name}"? This will remove all picks, standings, and draft data.`)) return
     setDeleting(true)
@@ -325,14 +382,12 @@ export default function ContestAdminClient({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Contest #">
-            <input type="number" value={form.weekNumber} onChange={(e) => set('weekNumber', e.target.value)} className={inputClass} min={1} required />
-          </Field>
-          <Field label="Season">
-            <input type="number" value={form.season} onChange={(e) => set('season', e.target.value)} className={inputClass} required />
-          </Field>
-        </div>
+        <Field label="Contest #">
+          <input type="number" value={form.weekNumber} onChange={(e) => set('weekNumber', e.target.value)} className={inputClass} min={1} required />
+        </Field>
+        <Field label="Season">
+          <input type="number" value={form.season} onChange={(e) => set('season', e.target.value)} className={inputClass} required />
+        </Field>
 
         <Field label="Contest Name">
           <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} className={inputClass} required />
@@ -346,20 +401,18 @@ export default function ContestAdminClient({
           <input type="text" value={form.metricDescription} onChange={(e) => set('metricDescription', e.target.value)} className={inputClass} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Start Date">
-            <MonthDayInput value={form.startDate} onChange={(v) => set('startDate', v)} required />
-          </Field>
-          <Field label="End Date">
-            <MonthDayInput value={form.endDate} onChange={(v) => set('endDate', v)} required />
-          </Field>
-          <Field label="Draft Opens">
-            <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
-          </Field>
-          <Field label="Draft Start (EST)">
-            <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
-          </Field>
-        </div>
+        <Field label="Start Date">
+          <MonthDayInput value={form.startDate} onChange={(v) => set('startDate', v)} required />
+        </Field>
+        <Field label="End Date">
+          <MonthDayInput value={form.endDate} onChange={(v) => set('endDate', v)} required />
+        </Field>
+        <Field label="Draft Opens">
+          <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
+        </Field>
+        <Field label="Draft Start (EST)">
+          <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
+        </Field>
         <p className="text-xs text-zinc-600">Draft closes 3 hrs after open</p>
 
         <Field label="Baseball Savant URL" hint="Paste the backdated URL (prior year dates) — Fetch will load columns and rewrite to this season's URL">
@@ -404,9 +457,9 @@ export default function ContestAdminClient({
         </button>
       </form>
 
-      {/* ── Poll ── */}
+      {/* ── Update Standings ── */}
       <div className={`${card} p-4 space-y-3`}>
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Standings Poll</h2>
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Update Standings</h2>
         {contest.lastPolledAt && (
           <p className="text-xs text-zinc-600">Last polled: {new Date(contest.lastPolledAt).toLocaleString()}</p>
         )}
@@ -423,26 +476,49 @@ export default function ContestAdminClient({
       {/* ── Draft order ── */}
       <div className={`${card} p-4 space-y-3`}>
         <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Draft Order</h2>
-        <div className="space-y-1">
+        <div className="space-y-2">
           {orderedIds.map((id, i) => {
-            const pick = picks.find((p) => p.managerId === id)
+            const currentTeam = manualPicks[id]
+            const isSaving = savingPickFor === id
+            const err = pickError[id]
             return (
-              <div key={id} className="flex items-center gap-2 py-1">
-                <span className="text-zinc-600 text-sm w-5 tabular-nums">{i + 1}</span>
-                <span className="flex-1 text-sm font-medium text-zinc-200">{idToUsername[id] ?? id}</span>
-                {pick && (
-                  <span className="text-xs text-green-400 font-medium">
-                    {getTeam(pick.teamCode)?.abbreviation ?? pick.teamCode} ✓
-                  </span>
-                )}
-                <button onClick={() => moveUp(i)} disabled={i === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↑</button>
-                <button onClick={() => moveDown(i)} disabled={i === orderedIds.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↓</button>
-                <button onClick={() => removeFromOrder(i)} className="text-zinc-700 hover:text-red-400 px-1 text-sm transition-colors">✕</button>
+              <div key={id} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-600 text-sm w-5 tabular-nums">{i + 1}</span>
+                  <span className="flex-1 text-sm font-medium text-zinc-200">{idToUsername[id] ?? id}</span>
+                  <button onClick={() => moveUp(i)} disabled={i === 0} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↑</button>
+                  <button onClick={() => moveDown(i)} disabled={i === orderedIds.length - 1} className="text-zinc-600 hover:text-zinc-300 disabled:opacity-30 px-1 transition-colors">↓</button>
+                  <button onClick={() => removeFromOrder(i)} className="text-zinc-700 hover:text-red-400 px-1 text-sm transition-colors">✕</button>
+                </div>
+                <div className="flex items-center gap-2 pl-7">
+                  <select
+                    value={currentTeam ?? ''}
+                    onChange={(e) => setManualPicks((m) => ({ ...m, [id]: e.target.value }))}
+                    className="flex-1 rounded-lg border border-[#262626] bg-[#0a0a0a] px-2 py-1.5 text-xs text-zinc-100 focus:border-green-500 focus:outline-none transition-colors appearance-none"
+                  >
+                    <option value="">— select team —</option>
+                    {MLB_TEAMS.map((t) => (
+                      <option key={t.code} value={t.code}>{t.abbreviation} — {t.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleSetPick(id)}
+                    disabled={isSaving || !currentTeam}
+                    className="flex-shrink-0 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {isSaving ? '…' : 'Set'}
+                  </button>
+                </div>
+                {err && <p className="text-xs text-red-400 pl-7">{err}</p>}
               </div>
             )
           })}
         </div>
         <div className="flex gap-2 pt-2">
+          <button onClick={handleSetDraftOrderFromPrior} disabled={settingDraftOrder} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-40">
+            {settingDraftOrder ? 'Setting…' : 'Draft Order'}
+          </button>
           <button onClick={handleRandomize} disabled={savingOrder} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors">
             Randomize
           </button>
@@ -450,6 +526,7 @@ export default function ContestAdminClient({
             {savingOrder ? 'Saving…' : 'Save Order'}
           </button>
         </div>
+        {draftOrderMessage && <p className="text-sm text-red-400">{draftOrderMessage}</p>}
       </div>
 
       {/* ── Standings ── */}

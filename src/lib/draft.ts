@@ -52,6 +52,45 @@ export async function getDraftSlots(contestId: string) {
 }
 
 /**
+ * Derive draft order for a contest from the prior contest's standings
+ * (rank 1 picks first). Skips if any picks have already been made.
+ * Returns true if the order was set, false if skipped or no prior data found.
+ */
+export async function autoSetDraftOrderFromPriorStandings(contestId: string): Promise<boolean> {
+  const contest = await prisma.contest.findUniqueOrThrow({
+    where: { id: contestId },
+    include: {
+      draftSlots: { where: { pickedAt: { not: null } }, take: 1 },
+    },
+  })
+
+  // Don't override once picking has started
+  if (contest.draftSlots.length > 0) return false
+
+  const priorContest = await prisma.contest.findFirst({
+    where: { season: contest.season, weekNumber: { lt: contest.weekNumber } },
+    orderBy: { weekNumber: 'desc' },
+    include: {
+      standings: {
+        orderBy: { rank: 'asc' },
+        include: { manager: { select: { id: true, isAdmin: true } } },
+      },
+    },
+  })
+
+  if (!priorContest || priorContest.standings.length === 0) return false
+
+  const orderedManagerIds = priorContest.standings
+    .filter((s) => !s.manager.isAdmin)
+    .map((s) => s.managerId)
+
+  if (orderedManagerIds.length === 0) return false
+
+  await initializeDraftSlots(contestId, orderedManagerIds)
+  return true
+}
+
+/**
  * Shuffle an array in place using Fisher-Yates.
  */
 export function shuffleArray<T>(arr: T[]): T[] {
