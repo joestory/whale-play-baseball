@@ -13,6 +13,7 @@ type ContestInfo = {
   season: number
   metricName: string
   metricDescription: string
+  sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
   metricConfig: string
@@ -116,6 +117,8 @@ export default function ContestAdminClient({
   const [fetchingColumns, setFetchingColumns] = useState(false)
   const [columnFetchStatus, setColumnFetchStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
+  const [sweepstakesPhoto, setSweepstakesPhoto] = useState<string | null>(contest.sweepstakesPhoto)
+  const [photoFileName, setPhotoFileName] = useState<string | null>(null)
 
   const nonAdminManagers = allManagers.filter((m) => !m.isAdmin)
 
@@ -174,6 +177,17 @@ export default function ContestAdminClient({
     }
   }
 
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSweepstakesPhoto(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault()
     setEditError('')
@@ -191,7 +205,7 @@ export default function ContestAdminClient({
       const res = await fetch(`/api/admin/contests/${contest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, draftOpenAt, draftCloseAt, metricConfig }),
+        body: JSON.stringify({ ...form, draftOpenAt, draftCloseAt, metricConfig, sweepstakesPhoto }),
       })
       if (res.ok) {
         setEditSuccess(true)
@@ -393,12 +407,38 @@ export default function ContestAdminClient({
           <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} className={inputClass} required />
         </Field>
 
-        <Field label="Contest Description">
+        <Field label="Contest Metric">
           <input type="text" value={form.metricName} onChange={(e) => set('metricName', e.target.value)} className={inputClass} required />
         </Field>
 
-        <Field label="Metric Description">
+        <Field label="Sweepstakes Description">
           <input type="text" value={form.metricDescription} onChange={(e) => set('metricDescription', e.target.value)} className={inputClass} />
+        </Field>
+
+        <Field label="Sweepstakes Photo">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <span className="flex-shrink-0 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+              {photoFileName ?? 'Choose photo'}
+            </span>
+            <input
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handlePhotoUpload}
+              className="sr-only"
+            />
+          </label>
+          {sweepstakesPhoto && (
+            <div className="mt-2 relative">
+              <img src={sweepstakesPhoto} alt="Sweepstakes" className="w-full max-h-48 object-cover rounded-lg" />
+              <button
+                type="button"
+                onClick={() => { setSweepstakesPhoto(null); setPhotoFileName(null) }}
+                className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white text-xs px-2 py-1 rounded transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          )}
         </Field>
 
         <Field label="Start Date">

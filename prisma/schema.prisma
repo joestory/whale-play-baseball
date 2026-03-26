@@ -43,6 +43,7 @@ model Contest {
   cascadeWindowMinutes Int           @default(60)
   status               ContestStatus @default(UPCOMING)
   lastPolledAt         DateTime?
+  sweepstakesPhoto     String?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
