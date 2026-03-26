@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getTeam, MLB_TEAMS } from '@/lib/constants'
 import type { MetricConfig } from '@/types'
@@ -113,6 +113,7 @@ export default function ContestAdminClient({
   allManagers: ManagerInfo[]
 }) {
   const router = useRouter()
+  useEffect(() => { window.scrollTo(0, 0) }, [])
   const [polling, setPolling] = useState(false)
   const [pollMessage, setPollMessage] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)

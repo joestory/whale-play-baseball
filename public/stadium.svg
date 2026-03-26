@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Field -->
+  <ellipse cx="32" cy="40" rx="22" ry="12" fill="#4ade80" opacity="0.3"/>
+  <!-- Diamond infield -->
+  <rect x="27" y="35" width="10" height="10" rx="1" transform="rotate(45 32 40)" fill="#86efac" opacity="0.6"/>
+  <!-- Outfield wall arc -->
+  <path d="M10 40 Q10 20 32 18 Q54 20 54 40" stroke="#6b7280" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Left stands -->
+  <path d="M8 44 L10 40 L10 52 L8 52 Z" fill="#3f3f46" stroke="#52525b" stroke-width="0.5"/>
+  <path d="M6 44 L8 44 L8 52 L6 52 Z" fill="#3f3f46" stroke="#52525b" stroke-width="0.5"/>
+  <path d="M4 43 L6 44 L6 52 L4 52 Z" fill="#52525b" stroke="#52525b" stroke-width="0.5"/>
+  <!-- Right stands -->
+  <path d="M54 40 L56 44 L56 52 L54 52 Z" fill="#3f3f46" stroke="#52525b" stroke-width="0.5"/>
+  <path d="M56 44 L58 44 L58 52 L56 52 Z" fill="#3f3f46" stroke="#52525b" stroke-width="0.5"/>
+  <path d="M58 44 L60 43 L60 52 L58 52 Z" fill="#52525b" stroke="#52525b" stroke-width="0.5"/>
+  <!-- Back wall / scoreboard -->
+  <rect x="20" y="14" width="24" height="8" rx="2" fill="#3f3f46" stroke="#52525b" stroke-width="1"/>
+  <rect x="23" y="16" width="5" height="4" rx="1" fill="#16a34a" opacity="0.8"/>
+  <rect x="30" y="16" width="5" height="4" rx="1" fill="#dc2626" opacity="0.8"/>
+  <rect x="37" y="16" width="4" height="4" rx="1" fill="#ca8a04" opacity="0.8"/>
+  <!-- Light towers -->
+  <line x1="18" y1="14" x2="14" y2="8" stroke="#71717a" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="13" cy="7" r="2" fill="#fde047" opacity="0.9"/>
+  <line x1="46" y1="14" x2="50" y2="8" stroke="#71717a" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="51" cy="7" r="2" fill="#fde047" opacity="0.9"/>
+  <!-- Home plate -->
+  <circle cx="32" cy="48" r="1.5" fill="white" opacity="0.8"/>
+  <!-- Foul lines -->
+  <line x1="32" y1="48" x2="10" y2="40" stroke="white" stroke-width="0.8" opacity="0.5" stroke-dasharray="2,2"/>
+  <line x1="32" y1="48" x2="54" y2="40" stroke="white" stroke-width="0.8" opacity="0.5" stroke-dasharray="2,2"/>
+</svg>

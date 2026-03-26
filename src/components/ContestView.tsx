@@ -69,6 +69,12 @@ export default function ContestView({
 
       {(view === 'sweepstakes' || !hasStandings) && hasSweepstakes && (
         <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] overflow-hidden">
+<<<<<<< HEAD
+=======
+          {sweepstakesDescription && (
+            <p className="px-4 py-3 text-sm text-zinc-300">{sweepstakesDescription}</p>
+          )}
+>>>>>>> origin/claude/implement-todo-item-eauS6
           {sweepstakesPhoto && (
             <img
               src={sweepstakesPhoto}
@@ -76,9 +82,12 @@ export default function ContestView({
               className="w-full object-cover"
             />
           )}
+<<<<<<< HEAD
           {sweepstakesDescription && (
             <p className="px-4 py-3 text-sm text-zinc-300">{sweepstakesDescription}</p>
           )}
+=======
+>>>>>>> origin/claude/implement-todo-item-eauS6
         </div>
       )}
 
