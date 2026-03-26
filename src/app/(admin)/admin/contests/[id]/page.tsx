@@ -45,6 +45,7 @@ export default async function AdminContestPage({
         savantCsvUrl: contest.savantCsvUrl,
         metricConfig: JSON.stringify(contest.metricConfig, null, 2),
         lastPolledAt: contest.lastPolledAt?.toISOString() ?? null,
+        sweepstakesPhoto: contest.sweepstakesPhoto ?? null,
         startDate: contest.startDate.toISOString().slice(0, 16),
         endDate: contest.endDate.toISOString().slice(0, 16),
         draftOpenAt: contest.draftOpenAt.toISOString().slice(0, 16),

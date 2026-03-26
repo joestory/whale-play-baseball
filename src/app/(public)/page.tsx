@@ -6,7 +6,7 @@ import MobileNav from '@/components/layout/MobileNav'
 import AdminNav from '@/components/layout/AdminNav'
 import TopNav from '@/components/layout/TopNav'
 import Countdown from '@/components/Countdown'
-import StandingsAccordion from '@/components/StandingsAccordion'
+import ContestView from '@/components/ContestView'
 import type { StandingRow } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -41,7 +41,7 @@ async function getContestData() {
   const upcoming = await prisma.contest.findFirst({
     where: { status: 'UPCOMING' },
     orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
-    select: { id: true, name: true, weekNumber: true, season: true, metricName: true, draftOpenAt: true },
+    select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, sweepstakesPhoto: true, draftOpenAt: true },
   })
   return { contest: null, upcoming }
 }
@@ -112,19 +112,34 @@ export default async function HomePage() {
               )}
             </div>
 
-            <StandingsAccordion
-              standings={standingRows}
+            <ContestView
+              status={contest.status}
+              standingRows={standingRows}
               contestDates={contestDates}
               metricName={contest.metricName}
+              sweepstakesDescription={contest.metricDescription ?? null}
+              sweepstakesPhoto={contest.sweepstakesPhoto ?? null}
             />
           </>
         ) : upcoming ? (
-          <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center space-y-3">
-            <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Next Contest</p>
-            <h2 className="text-xl font-semibold text-white">{upcoming.name}</h2>
-            <p className="text-sm text-zinc-500">{upcoming.metricName}</p>
-            <p className="text-sm font-medium text-zinc-400">Draft opens in</p>
-            <Countdown target={upcoming.draftOpenAt.toISOString()} />
+          <div className="space-y-4">
+            <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center space-y-3">
+              <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Next Contest</p>
+              <h2 className="text-xl font-semibold text-white">{upcoming.name}</h2>
+              <p className="text-sm text-zinc-500">{upcoming.metricName}</p>
+              <p className="text-sm font-medium text-zinc-400">Draft opens in</p>
+              <Countdown target={upcoming.draftOpenAt.toISOString()} />
+            </div>
+            {(upcoming.metricDescription || upcoming.sweepstakesPhoto) && (
+              <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] overflow-hidden">
+                {upcoming.sweepstakesPhoto && (
+                  <img src={upcoming.sweepstakesPhoto} alt="Sweepstakes" className="w-full object-cover" />
+                )}
+                {upcoming.metricDescription && (
+                  <p className="px-4 py-3 text-sm text-zinc-300">{upcoming.metricDescription}</p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-8 text-center">

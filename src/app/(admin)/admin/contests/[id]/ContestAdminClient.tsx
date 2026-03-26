@@ -13,6 +13,7 @@ type ContestInfo = {
   season: number
   metricName: string
   metricDescription: string
+  sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
   metricConfig: string
@@ -55,6 +56,15 @@ const inputClass =
   'w-full rounded-lg border border-[#262626] bg-[#0a0a0a] px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-green-500 focus:outline-none transition-colors'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// Parse a UTC datetime string ("YYYY-MM-DDTHH:mm", no Z) into local date/time parts.
+function utcStringToLocalParts(utcStr: string): { date: string; time: string } {
+  const d = new Date(utcStr + 'Z')
+  return {
+    date: d.toLocaleDateString('en-CA'),
+    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+  }
+}
 
 function MonthDayInput({ value, onChange, required }: { value: string; onChange: (v: string) => void; required?: boolean }) {
   const month = value.slice(5, 7)
@@ -116,10 +126,13 @@ export default function ContestAdminClient({
   const [fetchingColumns, setFetchingColumns] = useState(false)
   const [columnFetchStatus, setColumnFetchStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
+  const [sweepstakesPhoto, setSweepstakesPhoto] = useState<string | null>(contest.sweepstakesPhoto)
+  const [photoFileName, setPhotoFileName] = useState<string | null>(null)
 
   const nonAdminManagers = allManagers.filter((m) => !m.isAdmin)
 
-  // Edit form state
+  // Edit form state — draft time converted from stored UTC string to user's local time
+  const localDraft = utcStringToLocalParts(contest.draftOpenAt)
   const [form, setForm] = useState({
     name: contest.name,
     weekNumber: String(contest.weekNumber),
@@ -129,8 +142,8 @@ export default function ContestAdminClient({
     savantCsvUrl: contest.savantCsvUrl,
     startDate: contest.startDate,
     endDate: contest.endDate,
-    draftOpenAt: contest.draftOpenAt.slice(0, 10),
-    draftTime: contest.draftOpenAt.slice(11, 16),
+    draftOpenAt: localDraft.date,
+    draftTime: localDraft.time,
     cascadeWindowMinutes: String(contest.cascadeWindowMinutes),
   })
 
@@ -174,6 +187,17 @@ export default function ContestAdminClient({
     }
   }
 
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSweepstakesPhoto(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault()
     setEditError('')
@@ -186,12 +210,13 @@ export default function ContestAdminClient({
 
     setSavingEdit(true)
     try {
-      const draftOpenAt = `${form.draftOpenAt}T${form.draftTime}`
-      const draftCloseAt = new Date(new Date(draftOpenAt).getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      const draftLocalMs = new Date(`${form.draftOpenAt}T${form.draftTime}:00`).getTime()
+      const draftOpenAt = new Date(draftLocalMs).toISOString()
+      const draftCloseAt = new Date(draftLocalMs + 3 * 60 * 60 * 1000).toISOString()
       const res = await fetch(`/api/admin/contests/${contest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, draftOpenAt, draftCloseAt, metricConfig }),
+        body: JSON.stringify({ ...form, draftOpenAt, draftCloseAt, metricConfig, sweepstakesPhoto }),
       })
       if (res.ok) {
         setEditSuccess(true)
@@ -393,12 +418,38 @@ export default function ContestAdminClient({
           <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} className={inputClass} required />
         </Field>
 
-        <Field label="Contest Description">
+        <Field label="Contest Metric">
           <input type="text" value={form.metricName} onChange={(e) => set('metricName', e.target.value)} className={inputClass} required />
         </Field>
 
-        <Field label="Metric Description">
+        <Field label="Sweepstakes Description">
           <input type="text" value={form.metricDescription} onChange={(e) => set('metricDescription', e.target.value)} className={inputClass} />
+        </Field>
+
+        <Field label="Sweepstakes Photo">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <span className="flex-shrink-0 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+              {photoFileName ?? 'Choose photo'}
+            </span>
+            <input
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handlePhotoUpload}
+              className="sr-only"
+            />
+          </label>
+          {sweepstakesPhoto && (
+            <div className="mt-2 relative">
+              <img src={sweepstakesPhoto} alt="Sweepstakes" className="w-full max-h-48 object-cover rounded-lg" />
+              <button
+                type="button"
+                onClick={() => { setSweepstakesPhoto(null); setPhotoFileName(null) }}
+                className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white text-xs px-2 py-1 rounded transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          )}
         </Field>
 
         <Field label="Start Date">
@@ -410,7 +461,7 @@ export default function ContestAdminClient({
         <Field label="Draft Opens">
           <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
         </Field>
-        <Field label="Draft Start (EST)">
+        <Field label="Draft Start">
           <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
         </Field>
         <p className="text-xs text-zinc-600">Draft closes 3 hrs after open</p>
