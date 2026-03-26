@@ -19,7 +19,6 @@ export default async function ContestPage({
         orderBy: { rank: 'asc' },
         include: { manager: { select: { id: true, username: true, icon: true } } },
       },
-      picks: { select: { managerId: true } },
     },
   })
 
@@ -79,12 +78,9 @@ export default async function ContestPage({
           <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">
             Standings
           </h2>
-          {(() => {
-            const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
-            const visibleStandings = contest.standings.filter((s) => pickedManagerIds.has(s.managerId))
-            return visibleStandings.length > 0 ? (
+          {contest.standings.length > 0 ? (
             <div className="space-y-2">
-              {visibleStandings.map((s) => {
+              {contest.standings.map((s) => {
                 const team = getTeam(s.teamCode)
                 return (
                   <div
@@ -114,8 +110,7 @@ export default async function ContestPage({
             <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center text-zinc-600">
               No standings yet
             </div>
-          )
-          })()}
+          )}
         </section>
       </div>
     </div>
