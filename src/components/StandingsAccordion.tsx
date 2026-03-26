@@ -38,6 +38,7 @@ export default function StandingsAccordion({
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const rankLabels = buildRankLabels(standings)
+  const today = new Date().toLocaleDateString('en-CA')
 
   if (standings.length === 0) {
     return (
@@ -103,7 +104,7 @@ export default function StandingsAccordion({
 
                       return (
                         <div key={d} className="flex items-center gap-2 py-0.5">
-                          <span className="text-xs text-zinc-500 w-14 flex-shrink-0">{formatDate(d)}</span>
+                          <span className={`text-xs w-14 flex-shrink-0 ${d === today ? 'text-yellow-400 font-semibold' : 'text-zinc-500'}`}>{formatDate(d)}</span>
                           <span className="flex-1" />
                           <span className="text-xs tabular-nums text-zinc-300 w-10 text-right">
                             {cumulative != null ? formatValue(cumulative) : '—'}

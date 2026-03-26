@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   const session = await auth()
   const managerId = session!.user.id
 
-  const [currentContest, picks] = await Promise.all([
+  const [currentContest, picks, myStandings] = await Promise.all([
     prisma.contest.findFirst({
       where: { status: { in: ['DRAFTING', 'ACTIVE'] } },
       orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
@@ -28,7 +28,17 @@ export default async function DashboardPage() {
         },
       },
     }),
+    prisma.standing.findMany({
+      where: { managerId },
+      select: { contestId: true, rank: true, metricValue: true },
+    }),
   ])
+
+  const standingByContest = new Map(myStandings.map((s) => [s.contestId, s]))
+
+  function fmtVal(v: number) {
+    return v % 1 === 0 ? String(v) : v.toFixed(2)
+  }
 
   const currentPick = picks.find(
     (p) => p.contestId === currentContest?.id
@@ -59,14 +69,28 @@ export default async function DashboardPage() {
 
             <div className="mt-4">
               {currentPick ? (
-                <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                  <span className="text-green-400 text-base">✓</span>
-                  <div>
-                    <p className="text-sm font-medium text-green-300">Pick submitted</p>
-                    <p className="text-sm text-green-500">
-                      {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <span className="text-green-400 text-base">✓</span>
+                    <div>
+                      <p className="text-sm font-medium text-green-300">Pick submitted</p>
+                      <p className="text-sm text-green-500">
+                        {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
+                      </p>
+                    </div>
                   </div>
+                  {standingByContest.has(currentContest.id) && (() => {
+                    const s = standingByContest.get(currentContest.id)!
+                    return (
+                      <div className="flex items-center gap-2 px-1 text-sm">
+                        <span className="text-zinc-500">Rank</span>
+                        <span className="font-semibold text-zinc-200">#{s.rank}</span>
+                        <span className="text-zinc-700">·</span>
+                        <span className="tabular-nums text-zinc-200">{fmtVal(s.metricValue)}</span>
+                        <span className="text-zinc-500">{currentContest.metricName}</span>
+                      </div>
+                    )
+                  })()}
                 </div>
               ) : currentContest.status === 'DRAFTING' ? (
                 <Link
@@ -103,6 +127,14 @@ export default async function DashboardPage() {
                       {getTeam(pick.teamCode)?.name ?? pick.teamCode} ·{' '}
                       {pick.contest.metricName}
                     </p>
+                    {standingByContest.has(pick.contestId) && (() => {
+                      const s = standingByContest.get(pick.contestId)!
+                      return (
+                        <p className="text-xs text-zinc-400 tabular-nums mt-0.5">
+                          #{s.rank} · {fmtVal(s.metricValue)} {pick.contest.metricName}
+                        </p>
+                      )
+                    })()}
                   </div>
                   <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${
                     pick.contest.status === 'COMPLETED'

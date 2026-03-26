@@ -69,15 +69,15 @@ export default function ContestView({
 
       {(view === 'sweepstakes' || !hasStandings) && hasSweepstakes && (
         <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] overflow-hidden">
+          {sweepstakesDescription && (
+            <p className="px-4 py-3 text-sm text-zinc-300">{sweepstakesDescription}</p>
+          )}
           {sweepstakesPhoto && (
             <img
               src={sweepstakesPhoto}
               alt="Sweepstakes"
               className="w-full object-cover"
             />
-          )}
-          {sweepstakesDescription && (
-            <p className="px-4 py-3 text-sm text-zinc-300">{sweepstakesDescription}</p>
           )}
         </div>
       )}
