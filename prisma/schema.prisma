@@ -76,7 +76,6 @@ model Standing {
   metricValue    Float    @default(0)
   rank           Int?
   dailyValues    Json?    // { "2025-04-01": 5, "2025-04-02": 3 } — cumulative per date
-  dailyOpponents Json?    // { "2025-04-01": "NYY" } — opponent team code per game date
   relatedValues  Json?    // { "Whiff %": 18.5, "Whiffs/AB": 0.25 }
   updatedAt      DateTime @updatedAt
 

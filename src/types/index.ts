@@ -20,7 +20,6 @@ export type MetricConfig = {
   columns: Record<string, string> // alias → CSV column name e.g. { hr: "home_run" }
   teamColumn: string              // CSV column identifying the team e.g. "player_team"
   dateColumn?: string             // CSV column for game date, used for daily tracking e.g. "game_date"
-  opposingTeamColumn?: string     // CSV column for the opposing team e.g. "away_team"
   aggregation: MetricAggregationStep[]
   unit: string                    // display unit e.g. "HR" or "%"
   higherIsBetter?: boolean        // default true; false for metrics like ERA
@@ -44,7 +43,6 @@ export type StandingRow = {
   teamLogo: string
   metricValue: number
   dailyValues: Record<string, number>
-  dailyOpponents: Record<string, string>
   relatedValues: Record<string, number>
 }
 
