@@ -11,6 +11,22 @@ function formatValue(v: number) {
   return v % 1 === 0 ? String(v) : v.toFixed(2)
 }
 
+function buildRankLabels(standings: StandingRow[]): Map<string, string> {
+  const freq = new Map<number, number>()
+  for (const s of standings) {
+    if (s.rank != null) freq.set(s.rank, (freq.get(s.rank) ?? 0) + 1)
+  }
+  const labels = new Map<string, string>()
+  for (const s of standings) {
+    if (s.rank == null) {
+      labels.set(s.id, '—')
+    } else {
+      labels.set(s.id, (freq.get(s.rank)! > 1 ? `T${s.rank}` : String(s.rank)))
+    }
+  }
+  return labels
+}
+
 export default function StandingsAccordion({
   standings,
   contestDates,
@@ -21,6 +37,7 @@ export default function StandingsAccordion({
   metricName: string
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
+  const rankLabels = buildRankLabels(standings)
 
   if (standings.length === 0) {
     return (
@@ -47,7 +64,7 @@ export default function StandingsAccordion({
             >
               {/* Top pill: rank · icon · name */}
               <div className="inline-flex items-center gap-2 bg-[#1a1a1a] rounded-full px-3 py-1.5">
-                <span className="text-xs font-bold text-zinc-500 tabular-nums">#{s.rank ?? '—'}</span>
+                <span className="text-xs font-bold text-zinc-500 tabular-nums">#{rankLabels.get(s.id)}</span>
                 <span className="text-sm leading-none">{s.managerIcon}</span>
                 <span className="text-sm font-medium text-zinc-100">{s.managerUsername}</span>
               </div>

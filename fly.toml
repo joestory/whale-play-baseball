@@ -1,5 +1,5 @@
 app = "whale-play-baseball"
-primary_region = "ord"
+primary_region = "sjc"
 
 [build]
 
@@ -25,4 +25,4 @@ primary_region = "ord"
   memory = "512mb"
 
 [deploy]
-  release_command = "npx prisma migrate deploy"
+  release_command = "node node_modules/prisma/build/index.js db push --accept-data-loss"

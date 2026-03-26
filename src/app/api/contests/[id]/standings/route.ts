@@ -7,13 +7,19 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const standings = await prisma.standing.findMany({
-    where: { contestId: id },
-    orderBy: { rank: 'asc' },
-    include: {
-      manager: { select: { id: true, username: true } },
-    },
-  })
+  const [contest, standings] = await Promise.all([
+    prisma.contest.findUnique({ where: { id }, select: { lastPolledAt: true } }),
+    prisma.standing.findMany({
+      where: { contestId: id },
+      orderBy: { rank: 'asc' },
+      include: {
+        manager: { select: { id: true, username: true, icon: true } },
+      },
+    }),
+  ])
 
-  return NextResponse.json(standings)
+  return NextResponse.json({
+    standings,
+    lastPolledAt: contest?.lastPolledAt?.toISOString() ?? null,
+  })
 }
