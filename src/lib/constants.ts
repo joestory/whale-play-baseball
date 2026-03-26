@@ -35,6 +35,7 @@ export const MLB_TEAMS: TeamInfo[] = [
   { code: 'TEX', name: 'Texas Rangers',          city: 'Texas',         abbreviation: 'TEX', logo: 'https://www.mlbstatic.com/team-logos/140.svg', primaryColor: '#003278' },
   { code: 'TOR', name: 'Toronto Blue Jays',      city: 'Toronto',       abbreviation: 'TOR', logo: 'https://www.mlbstatic.com/team-logos/141.svg', primaryColor: '#134A8E' },
   { code: 'WSH', name: 'Washington Nationals',   city: 'Washington',    abbreviation: 'WSH', logo: 'https://www.mlbstatic.com/team-logos/120.svg', primaryColor: '#AB0003' },
+  { code: 'PDX', name: 'MLB2PDX',               city: 'Portland',      abbreviation: 'PDX', logo: 'https://www.svgrepo.com/download/400785/stadium.svg', primaryColor: '#1B4332' },
 ]
 
 // Baseball Savant sometimes uses different abbreviations — normalize them here
