@@ -27,6 +27,7 @@ type RawStanding = {
   teamCode: string
   metricValue: number
   dailyValues: unknown
+  dailyOpponents: unknown
   relatedValues: unknown
   manager: { icon: string | null; username: string }
 }
@@ -49,6 +50,9 @@ export function toStandingRows(standings: RawStanding[], contestDates: string[])
       teamLogo: team?.logo ?? '',
       metricValue: s.metricValue,
       dailyValues: Object.fromEntries(Object.entries(raw).filter(([d]) => dateSet.has(d))),
+      dailyOpponents: Object.fromEntries(
+        Object.entries((s.dailyOpponents ?? {}) as Record<string, string>).filter(([d]) => dateSet.has(d))
+      ),
       relatedValues: (s.relatedValues ?? {}) as Record<string, number>,
     }
   })

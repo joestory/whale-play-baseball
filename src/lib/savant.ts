@@ -3,6 +3,7 @@ import { prisma } from './db'
 import {
   aggregateByTeam,
   aggregateByTeamAndDate,
+  aggregateOpponentsByTeamAndDate,
   aggregateRelatedByTeam,
   computeRanks,
   parseMetricConfig,
@@ -76,6 +77,7 @@ export async function pollContest(contestId: string): Promise<void> {
 
   const teamTotals = aggregateByTeam(rows, config)
   const teamDaily = aggregateByTeamAndDate(rows, config)
+  const teamOpponents = aggregateOpponentsByTeamAndDate(rows, config)
   const teamRelated = aggregateRelatedByTeam(rows, config)
 
   const managerValues = new Map<string, number>()
@@ -96,6 +98,7 @@ export async function pollContest(contestId: string): Promise<void> {
           metricValue: managerValues.get(pick.managerId) ?? 0,
           rank: ranks.get(pick.managerId) ?? null,
           dailyValues: teamDaily.get(pick.teamCode) ?? {},
+          dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
           relatedValues: teamRelated.get(pick.teamCode) ?? {},
         },
         update: {
@@ -103,6 +106,7 @@ export async function pollContest(contestId: string): Promise<void> {
           metricValue: managerValues.get(pick.managerId) ?? 0,
           rank: ranks.get(pick.managerId) ?? null,
           dailyValues: teamDaily.get(pick.teamCode) ?? {},
+          dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
           relatedValues: teamRelated.get(pick.teamCode) ?? {},
         },
       })

@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { getTeam } from '@/lib/constants'
+import { contestDatesUpToToday } from '@/lib/standings'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -34,6 +35,21 @@ export default async function DashboardPage() {
     (p) => p.contestId === currentContest?.id
   )
 
+  // Fetch standing data for the per-date breakdown
+  const currentStanding = currentPick && currentContest
+    ? await prisma.standing.findUnique({
+        where: { contestId_managerId: { contestId: currentContest.id, managerId } },
+        select: { dailyValues: true, dailyOpponents: true },
+      })
+    : null
+
+  const contestDates = currentContest
+    ? contestDatesUpToToday(currentContest.startDate, currentContest.endDate)
+    : []
+  const dailyValues = (currentStanding?.dailyValues ?? {}) as Record<string, number>
+  const dailyOpponents = (currentStanding?.dailyOpponents ?? {}) as Record<string, string>
+  const datesWithData = contestDates.filter((d) => d in dailyValues)
+
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       {/* Current contest status */}
@@ -59,15 +75,57 @@ export default async function DashboardPage() {
 
             <div className="mt-4">
               {currentPick ? (
-                <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                  <span className="text-green-400 text-base">✓</span>
-                  <div>
-                    <p className="text-sm font-medium text-green-300">Pick submitted</p>
-                    <p className="text-sm text-green-500">
-                      {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
-                    </p>
+                <>
+                  <div className="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <span className="text-green-400 text-base">✓</span>
+                    <div>
+                      <p className="text-sm font-medium text-green-300">Pick submitted</p>
+                      <p className="text-sm text-green-500">
+                        {getTeam(currentPick.teamCode)?.name ?? currentPick.teamCode}
+                      </p>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Per-game-date breakdown */}
+                  {datesWithData.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {[...datesWithData].reverse().map((date, i, arr) => {
+                        const prevDate = arr[i + 1]
+                        const cumulative = dailyValues[date] ?? 0
+                        const prev = prevDate ? (dailyValues[prevDate] ?? 0) : 0
+                        const delta = cumulative - prev
+                        const opp = dailyOpponents[date]
+                        const oppTeam = opp ? getTeam(opp) : null
+                        const label = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                        return (
+                          <div key={date} className="flex items-center gap-3 text-sm px-1 py-0.5">
+                            <span className="text-zinc-500 w-12 shrink-0 text-xs">{label}</span>
+                            {oppTeam ? (
+                              <span className="flex items-center gap-1.5 flex-1">
+                                <img
+                                  src={oppTeam.logo}
+                                  alt={oppTeam.abbreviation}
+                                  className="w-5 h-5 object-contain"
+                                />
+                                <span className="text-zinc-400 text-xs">{oppTeam.abbreviation}</span>
+                              </span>
+                            ) : (
+                              <span className="flex-1" />
+                            )}
+                            <span className={`tabular-nums font-medium text-sm ${
+                              delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-zinc-600'
+                            }`}>
+                              {delta > 0 ? '+' : ''}{delta % 1 === 0 ? delta : delta.toFixed(2)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               ) : currentContest.status === 'DRAFTING' ? (
                 <Link
                   href={`/draft/${currentContest.id}`}

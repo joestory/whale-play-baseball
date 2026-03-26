@@ -102,6 +102,39 @@ export function aggregateByTeamAndDate(
 }
 
 /**
+ * Capture the opposing team per (team, date) from CSV rows.
+ * Returns team code → date string → opponent team code.
+ * For doubleheaders, the first opponent encountered for a date is used.
+ */
+export function aggregateOpponentsByTeamAndDate(
+  rows: Row[],
+  config: MetricConfig
+): Map<string, Record<string, string>> {
+  if (!config.opposingTeamColumn || !config.dateColumn) return new Map()
+
+  const result = new Map<string, Map<string, string>>()
+
+  for (const row of rows) {
+    const team = normalizeTeam(row[config.teamColumn] ?? '')
+    if (!team) continue
+    const date = (row[config.dateColumn] ?? '').slice(0, 10)
+    if (!date) continue
+    const opponent = normalizeTeam(row[config.opposingTeamColumn] ?? '')
+    if (!opponent) continue
+
+    if (!result.has(team)) result.set(team, new Map())
+    const dateMap = result.get(team)!
+    if (!dateMap.has(date)) dateMap.set(date, opponent) // first wins for doubleheaders
+  }
+
+  const final = new Map<string, Record<string, string>>()
+  for (const [team, dateMap] of result) {
+    final.set(team, Object.fromEntries(dateMap))
+  }
+  return final
+}
+
+/**
  * Compute related metric values per team.
  * Returns team code → { metricName: value }
  */

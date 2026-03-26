@@ -54,6 +54,7 @@ function buildAggregation(def: MetricDef, prefix = ''): {
 
 function buildMetricConfig(
   teamColumn: string,
+  opposingTeamColumn: string,
   dateColumn: string,
   primary: MetricDef,
   related: MetricDef[],
@@ -68,6 +69,7 @@ function buildMetricConfig(
     columns,
     teamColumn,
     dateColumn: dateColumn || undefined,
+    opposingTeamColumn: opposingTeamColumn || undefined,
     aggregation: steps,
     unit: primary.unit,
     higherIsBetter,
@@ -103,6 +105,7 @@ function parseMetricDef(
 function parseMetricConfig(config: MetricConfig) {
   return {
     teamColumn: config.teamColumn ?? 'pitcher_team',
+    opposingTeamColumn: config.opposingTeamColumn ?? '',
     dateColumn: config.dateColumn ?? 'game_date',
     higherIsBetter: config.higherIsBetter !== false,
     primary: parseMetricDef(config.columns, config.aggregation as MetricAggregationStep[], '', config.unit),
@@ -244,6 +247,7 @@ export default function MetricBuilderSection({
   const parsed = initialConfig ? parseMetricConfig(initialConfig) : null
 
   const [teamColumn, setTeamColumn] = useState(parsed?.teamColumn ?? 'pitcher_team')
+  const [opposingTeamColumn, setOpposingTeamColumn] = useState(parsed?.opposingTeamColumn ?? '')
   const [dateColumn, setDateColumn] = useState(parsed?.dateColumn ?? 'game_date')
   const [higherIsBetter, setHigherIsBetter] = useState(parsed?.higherIsBetter ?? true)
   const [primary, setPrimary] = useState<MetricDef>(parsed?.primary ?? emptyMetric())
@@ -251,10 +255,10 @@ export default function MetricBuilderSection({
   const effectiveHeaders = availableColumns ?? []
 
   useEffect(() => {
-    onChange(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+    onChange(buildMetricConfig(teamColumn, opposingTeamColumn, dateColumn, primary, related, higherIsBetter))
   // onChange is a stable setState setter — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamColumn, dateColumn, primary, related, higherIsBetter])
+  }, [teamColumn, opposingTeamColumn, dateColumn, primary, related, higherIsBetter])
 
   return (
     <div className="space-y-4">
@@ -268,11 +272,15 @@ export default function MetricBuilderSection({
 
       {/* Team / date columns */}
       <div className="space-y-3">
-        <Field label="Team column">
+        <Field label="Team Column">
           <ColumnSelect value={teamColumn} onChange={setTeamColumn}
             headers={effectiveHeaders} placeholder="e.g. pitcher_team" required />
         </Field>
-        <Field label="Date column">
+        <Field label="Opposing Team Column">
+          <ColumnSelect value={opposingTeamColumn} onChange={setOpposingTeamColumn}
+            headers={effectiveHeaders} placeholder="e.g. away_team" />
+        </Field>
+        <Field label="Date Column">
           <ColumnSelect value={dateColumn} onChange={setDateColumn}
             headers={effectiveHeaders} placeholder="e.g. game_date" />
         </Field>
