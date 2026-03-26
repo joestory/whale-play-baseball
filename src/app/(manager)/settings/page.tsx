@@ -3,7 +3,18 @@
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 
-const ICON_OPTIONS = ['⚾', '🦈', '🐋', '🔥', '⚡', '🦁', '🐺', '🦊', '🐻', '🦅', '💎', '🏆', '🎯', '🌊', '🚀']
+const ICON_OPTIONS = [
+  // Sports & baseball
+  '⚾', '🏈', '⚽', '🏀', '🎾', '🏒', '🥊', '🎳', '🏋️', '🤺',
+  // Fierce animals
+  '🦁', '🐯', '🐆', '🦊', '🐺', '🦝', '🐻', '🐻‍❄️', '🦅', '🦉',
+  // Sea & wild
+  '🦈', '🐋', '🐬', '🦑', '🦀', '🐊', '🦖', '🦂', '🐍', '🦏',
+  // Nature & forces
+  '🔥', '⚡', '🌊', '🌪️', '🌋', '❄️', '☀️', '🌑', '☄️', '🌵',
+  // Symbols & icons
+  '💎', '🏆', '🎯', '🚀', '⭐', '💫', '🌟', '🔱', '⚔️', '🛡️',
+]
 
 const inputCls = 'w-full rounded-lg border border-[#262626] bg-[#0a0a0a] px-3 py-2.5 text-base text-zinc-100 placeholder:text-zinc-600 focus:border-green-500 focus:outline-none transition-colors'
 const labelCls = 'block text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5'
@@ -105,18 +116,6 @@ export default function SettingsPage() {
               {opt}
             </button>
           ))}
-        </div>
-
-        <div>
-          <label className={labelCls}>Or type any emoji</label>
-          <input
-            type="text"
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-            className={inputCls}
-            placeholder="⚾"
-            maxLength={4}
-          />
         </div>
 
         {iconMessage && (
