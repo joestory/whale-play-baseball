@@ -223,7 +223,7 @@ function MetricDefEditor({ value, onChange, showName, headers }: {
         </Field>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             <Field label="Numerator column">
               <ColumnSelect value={value.column} onChange={(v) => set('column', v)}
                 headers={headers} placeholder="e.g. whiff" required />
@@ -317,7 +317,7 @@ export default function MetricBuilderSection({
       )}
 
       {/* Team / date columns */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <Field label="Team column">
           <ColumnSelect value={teamColumn} onChange={setTeamColumn}
             headers={effectiveHeaders} placeholder="e.g. pitcher_team" required />
