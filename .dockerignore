@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+*.md
+.env*
+.gitignore
+prisma/check-draft.ts
+prisma/create-managers.ts
+prisma/reset-admin.ts
+prisma/seed-demo.ts
+prisma/seed-draft.ts

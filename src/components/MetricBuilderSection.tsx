@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { MetricConfig, MetricAggregationStep, RelatedMetric } from '@/types'
 
 // ─── Internal types ────────────────────────────────────────────────────────────
@@ -110,22 +110,6 @@ function parseMetricConfig(config: MetricConfig) {
       parseMetricDef(r.columns, r.aggregation as MetricAggregationStep[], r.name, r.unit)
     ),
   }
-}
-
-// ─── CSV header parser ────────────────────────────────────────────────────────
-
-function parseCSVHeaders(text: string): string[] {
-  const firstLine = text.split(/\r?\n/)[0] ?? ''
-  const headers: string[] = []
-  let current = ''
-  let inQuotes = false
-  for (const ch of firstLine) {
-    if (ch === '"') { inQuotes = !inQuotes }
-    else if (ch === ',' && !inQuotes) { headers.push(current.trim().replace(/^"|"$/g, '')); current = '' }
-    else { current += ch }
-  }
-  if (current.trim()) headers.push(current.trim().replace(/^"|"$/g, ''))
-  return headers.filter(Boolean)
 }
 
 // ─── Shared UI primitives ─────────────────────────────────────────────────────
@@ -264,57 +248,23 @@ export default function MetricBuilderSection({
   const [higherIsBetter, setHigherIsBetter] = useState(parsed?.higherIsBetter ?? true)
   const [primary, setPrimary] = useState<MetricDef>(parsed?.primary ?? emptyMetric())
   const [related, setRelated] = useState<MetricDef[]>(parsed?.related ?? [])
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([])
-  const [csvFileName, setCsvFileName] = useState('')
-
-  // Columns from URL fetch take priority over file upload
-  const effectiveHeaders = availableColumns?.length ? availableColumns : csvHeaders
-
-  // Stable ref to avoid stale closure in effect
-  const onChangeRef = useRef(onChange)
-  onChangeRef.current = onChange
+  const effectiveHeaders = availableColumns ?? []
 
   useEffect(() => {
-    onChangeRef.current(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+    onChange(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+  // onChange is a stable setState setter — safe to omit from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamColumn, dateColumn, primary, related, higherIsBetter])
-
-  function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setCsvFileName(file.name)
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      setCsvHeaders(parseCSVHeaders(ev.target?.result as string))
-    }
-    reader.readAsText(file)
-  }
 
   return (
     <div className="space-y-4">
 
-      {/* Column source — URL-fetched or file upload */}
+      {/* Column source — from Savant URL fetch */}
       {availableColumns?.length ? (
         <div className="flex items-center gap-2 text-xs">
           <span className="text-green-400 font-medium">✓ {availableColumns.length} columns from Savant URL</span>
         </div>
-      ) : (
-        <Field label="Upload Sample CSV">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <span className="flex-shrink-0 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
-              Choose file
-            </span>
-            <span className="text-sm text-zinc-600 truncate">
-              {csvFileName || 'No file chosen'}
-            </span>
-            <input type="file" accept=".csv,text/csv" onChange={handleCsvUpload} className="sr-only" />
-          </label>
-          {csvHeaders.length > 0 && (
-            <p className="text-xs text-green-400 mt-1">
-              {csvHeaders.length} columns detected — dropdowns enabled below.
-            </p>
-          )}
-        </Field>
-      )}
+      ) : null}
 
       {/* Team / date columns */}
       <div className="grid grid-cols-2 gap-3">

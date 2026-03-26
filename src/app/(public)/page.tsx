@@ -9,7 +9,7 @@ import Countdown from '@/components/Countdown'
 import StandingsAccordion from '@/components/StandingsAccordion'
 import type { StandingRow } from '@/types'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
   const today = new Date().toISOString().slice(0, 10)
@@ -100,7 +100,7 @@ export default async function HomePage() {
                 <h2 className="text-xl font-semibold text-white mt-2">{contest.name}</h2>
                 <p className="text-sm text-zinc-500">{contest.metricName}</p>
               </div>
-              {isLoggedIn && contest.status === 'DRAFTING' && (
+              {isLoggedIn && !isAdmin && contest.status === 'DRAFTING' && (
                 <Link
                   href={`/draft/${contest.id}`}
                   className="flex-shrink-0 bg-green-500 hover:bg-green-400 text-black text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"

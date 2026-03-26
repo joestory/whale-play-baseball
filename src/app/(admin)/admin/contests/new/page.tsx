@@ -192,7 +192,7 @@ export default function NewContestPage() {
             <Field label="Draft Opens">
               <MonthDayInput value={basic.draftOpenAt} onChange={(v) => setBasicField('draftOpenAt', v)} required />
             </Field>
-            <Field label="Draft Start">
+            <Field label="Draft Start (EST)">
               <input type="time" value={basic.draftTime} onChange={(e) => setBasicField('draftTime', e.target.value)} className={inputClass} required />
             </Field>
           </div>
