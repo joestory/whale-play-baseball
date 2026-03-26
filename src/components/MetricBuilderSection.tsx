@@ -53,8 +53,6 @@ function buildAggregation(def: MetricDef, prefix = ''): {
 }
 
 function buildMetricConfig(
-  teamColumn: string,
-  dateColumn: string,
   primary: MetricDef,
   related: MetricDef[],
   higherIsBetter: boolean,
@@ -66,8 +64,8 @@ function buildMetricConfig(
   })
   return {
     columns,
-    teamColumn,
-    dateColumn: dateColumn || undefined,
+    teamColumn: 'player_name',
+    dateColumn: 'game_date',
     aggregation: steps,
     unit: primary.unit,
     higherIsBetter,
@@ -102,8 +100,6 @@ function parseMetricDef(
 
 function parseMetricConfig(config: MetricConfig) {
   return {
-    teamColumn: config.teamColumn ?? 'pitcher_team',
-    dateColumn: config.dateColumn ?? 'game_date',
     higherIsBetter: config.higherIsBetter !== false,
     primary: parseMetricDef(config.columns, config.aggregation as MetricAggregationStep[], '', config.unit),
     related: (config.relatedMetrics ?? []).map((r) =>
@@ -243,18 +239,16 @@ export default function MetricBuilderSection({
 }) {
   const parsed = initialConfig ? parseMetricConfig(initialConfig) : null
 
-  const [teamColumn, setTeamColumn] = useState(parsed?.teamColumn ?? 'pitcher_team')
-  const [dateColumn, setDateColumn] = useState(parsed?.dateColumn ?? 'game_date')
   const [higherIsBetter, setHigherIsBetter] = useState(parsed?.higherIsBetter ?? true)
   const [primary, setPrimary] = useState<MetricDef>(parsed?.primary ?? emptyMetric())
   const [related, setRelated] = useState<MetricDef[]>(parsed?.related ?? [])
   const effectiveHeaders = availableColumns ?? []
 
   useEffect(() => {
-    onChange(buildMetricConfig(teamColumn, dateColumn, primary, related, higherIsBetter))
+    onChange(buildMetricConfig(primary, related, higherIsBetter))
   // onChange is a stable setState setter — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamColumn, dateColumn, primary, related, higherIsBetter])
+  }, [primary, related, higherIsBetter])
 
   return (
     <div className="space-y-4">
@@ -265,18 +259,6 @@ export default function MetricBuilderSection({
           <span className="text-green-400 font-medium">✓ {availableColumns.length} columns from Savant URL</span>
         </div>
       ) : null}
-
-      {/* Team / date columns */}
-      <div className="space-y-3">
-        <Field label="Team column">
-          <ColumnSelect value={teamColumn} onChange={setTeamColumn}
-            headers={effectiveHeaders} placeholder="e.g. pitcher_team" required />
-        </Field>
-        <Field label="Date column">
-          <ColumnSelect value={dateColumn} onChange={setDateColumn}
-            headers={effectiveHeaders} placeholder="e.g. game_date" />
-        </Field>
-      </div>
 
       {/* Primary metric */}
       <div className="border border-[#262626] rounded-lg p-3 space-y-3 bg-[#1a1a1a]">
