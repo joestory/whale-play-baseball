@@ -7,6 +7,7 @@ import {
   computeRanks,
   parseMetricConfig,
 } from './metrics'
+import { autoSetDraftOrderFromPriorStandings } from './draft'
 
 type CsvRow = Record<string, string>
 
@@ -130,4 +131,12 @@ export async function checkContestStatuses(): Promise<void> {
     where: { status: 'ACTIVE', endDate: { lte: now } },
     data: { status: 'COMPLETED' },
   })
+
+  // Auto-set draft order from prior standings for contests opening within 2 hours
+  const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000)
+  const upcomingDraftingSoon = await prisma.contest.findMany({
+    where: { status: 'UPCOMING', draftOpenAt: { lte: twoHoursFromNow } },
+    select: { id: true },
+  })
+  await Promise.allSettled(upcomingDraftingSoon.map((c) => autoSetDraftOrderFromPriorStandings(c.id)))
 }

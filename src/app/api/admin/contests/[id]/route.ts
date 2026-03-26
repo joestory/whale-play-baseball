@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { autoSetDraftOrderFromPriorStandings } from '@/lib/draft'
 
 async function requireAdmin() {
   const session = await auth()
@@ -85,8 +86,13 @@ export async function PATCH(
   if (body.cascadeWindowMinutes !== undefined) updateData.cascadeWindowMinutes = Number(body.cascadeWindowMinutes)
   if (body.status !== undefined) updateData.status = body.status
 
+  const draftOpenAtChanged = body.draftOpenAt !== undefined
+
   try {
     const contest = await prisma.contest.update({ where: { id }, data: updateData })
+    if (draftOpenAtChanged) {
+      await autoSetDraftOrderFromPriorStandings(id)
+    }
     return NextResponse.json(contest)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to update contest'

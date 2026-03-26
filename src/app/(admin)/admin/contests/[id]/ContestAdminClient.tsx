@@ -106,6 +106,8 @@ export default function ContestAdminClient({
   const [polling, setPolling] = useState(false)
   const [pollMessage, setPollMessage] = useState('')
   const [savingOrder, setSavingOrder] = useState(false)
+  const [settingDraftOrder, setSettingDraftOrder] = useState(false)
+  const [draftOrderMessage, setDraftOrderMessage] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
   const [editSuccess, setEditSuccess] = useState(false)
@@ -312,6 +314,28 @@ export default function ContestAdminClient({
     }
   }
 
+  async function handleSetDraftOrderFromPrior() {
+    setSettingDraftOrder(true)
+    setDraftOrderMessage('')
+    try {
+      const res = await fetch(`/api/admin/draft-order/${contest.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromPriorStandings: true }),
+      })
+      if (res.ok) {
+        router.refresh()
+      } else {
+        const d = await res.json()
+        setDraftOrderMessage(d.error ?? 'Failed to set draft order')
+      }
+    } catch {
+      setDraftOrderMessage('Network error')
+    } finally {
+      setSettingDraftOrder(false)
+    }
+  }
+
   async function handleDelete() {
     if (!confirm(`Delete "${contest.name}"? This will remove all picks, standings, and draft data.`)) return
     setDeleting(true)
@@ -433,14 +457,25 @@ export default function ContestAdminClient({
         </button>
       </form>
 
+      {/* ── Update Standings ── */}
+      <div className={`${card} p-4 space-y-3`}>
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Update Standings</h2>
+        {contest.lastPolledAt && (
+          <p className="text-xs text-zinc-600">Last polled: {new Date(contest.lastPolledAt).toLocaleString()}</p>
+        )}
+        <button
+          onClick={handlePoll}
+          disabled={polling}
+          className="bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+        >
+          {polling ? 'Polling…' : 'Poll Now'}
+        </button>
+        {pollMessage && <p className="text-sm text-zinc-400">{pollMessage}</p>}
+      </div>
+
       {/* ── Draft order ── */}
       <div className={`${card} p-4 space-y-3`}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Draft Order</h2>
-          {contest.lastPolledAt && (
-            <span className="text-xs text-zinc-600">Polled {new Date(contest.lastPolledAt).toLocaleString()}</span>
-          )}
-        </div>
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Draft Order</h2>
         <div className="space-y-2">
           {orderedIds.map((id, i) => {
             const currentTeam = manualPicks[id]
@@ -481,17 +516,17 @@ export default function ContestAdminClient({
           })}
         </div>
         <div className="flex gap-2 pt-2">
+          <button onClick={handleSetDraftOrderFromPrior} disabled={settingDraftOrder} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-40">
+            {settingDraftOrder ? 'Setting…' : 'Draft Order'}
+          </button>
           <button onClick={handleRandomize} disabled={savingOrder} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors">
             Randomize
           </button>
           <button onClick={handleSaveOrder} disabled={savingOrder} className="flex-1 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-medium py-2 rounded-lg text-sm transition-colors">
             {savingOrder ? 'Saving…' : 'Save Order'}
           </button>
-          <button onClick={handlePoll} disabled={polling} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors">
-            {polling ? 'Polling…' : 'Poll Now'}
-          </button>
         </div>
-        {pollMessage && <p className="text-sm text-zinc-400">{pollMessage}</p>}
+        {draftOrderMessage && <p className="text-sm text-red-400">{draftOrderMessage}</p>}
       </div>
 
       {/* ── Standings ── */}
