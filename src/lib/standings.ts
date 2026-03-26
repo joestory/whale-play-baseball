@@ -2,19 +2,16 @@ import { getTeam } from './constants'
 import type { StandingRow } from '@/types'
 
 /**
- * Returns dates from startDate through min(today in ET, endDate), inclusive.
- * Uses Eastern time to match Baseball Savant's data cadence (games end ET).
+ * Returns dates from startDate through min(today UTC, endDate), inclusive.
  */
 export function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
-  const todayET = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-  }).format(new Date()) // en-CA locale returns YYYY-MM-DD
+  const todayUTC = new Date().toISOString().slice(0, 10)
 
   const dates: string[] = []
   const cursor = new Date(startDate)
   while (cursor <= endDate) {
     const d = cursor.toISOString().slice(0, 10)
-    if (d > todayET) break
+    if (d > todayUTC) break
     dates.push(d)
     cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
