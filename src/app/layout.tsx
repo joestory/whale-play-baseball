@@ -9,6 +9,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://whaleplayfantasy.com'),
   title: 'Whale Play Baseball',
   description: 'Fantasy baseball weekly draft league',
   icons: {

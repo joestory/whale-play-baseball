@@ -7,9 +7,21 @@ import AdminNav from '@/components/layout/AdminNav'
 import TopNav from '@/components/layout/TopNav'
 import Countdown from '@/components/Countdown'
 import ContestView from '@/components/ContestView'
+import type { Metadata } from 'next'
 import type { StandingRow } from '@/types'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Whale Play Baseball',
+  description: 'Fantasy baseball weekly draft league',
+  openGraph: {
+    title: 'Whale Play Baseball',
+    description: 'Fantasy baseball weekly draft league',
+    siteName: 'Whale Play Baseball',
+    images: [{ url: '/whale.svg' }],
+  },
+}
 
 function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
   const today = new Date().toISOString().slice(0, 10)
