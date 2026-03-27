@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${contest.name} — Week ${contest.weekNumber} Standings`,
       description,
       siteName: 'Whale Play Baseball',
-      images: [{ url: '/whale.svg' }],
+      images: [{ url: '/whale.png', width: 1200, height: 1200 }],
     },
   }
 }

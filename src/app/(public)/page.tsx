@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     title: 'Whale Play Baseball',
     description: 'Fantasy baseball weekly draft league',
     siteName: 'Whale Play Baseball',
-    images: [{ url: '/whale.svg' }],
+    images: [{ url: '/whale.png', width: 1200, height: 1200 }],
   },
 }
 
