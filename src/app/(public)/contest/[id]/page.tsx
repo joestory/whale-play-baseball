@@ -114,6 +114,14 @@ export default async function ContestPage({ params }: Props) {
           contestDates={contestDates}
         />
 
+        {/* Metric explainer — editorial story authored by the commissioner */}
+        {contest.metricExplainer && (
+          <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-4">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">About This Week&apos;s Metric</h2>
+            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{contest.metricExplainer}</p>
+          </div>
+        )}
+
       </div>
     </div>
   )

@@ -35,6 +35,7 @@ model Contest {
   metricName           String
   metricDescription    String?
   commissionerMessage  String?
+  metricExplainer      String?
   savantCsvUrl         String
   metricConfig         Json
   startDate            DateTime

@@ -14,6 +14,7 @@ type ContestInfo = {
   metricName: string
   metricDescription: string
   commissionerMessage: string
+  metricExplainer: string
   sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
@@ -142,6 +143,7 @@ export default function ContestAdminClient({
     metricName: contest.metricName,
     metricDescription: contest.metricDescription,
     commissionerMessage: contest.commissionerMessage,
+    metricExplainer: contest.metricExplainer,
     savantCsvUrl: contest.savantCsvUrl,
     startDate: contest.startDate,
     endDate: contest.endDate,
@@ -456,6 +458,15 @@ export default function ContestAdminClient({
             onChange={(e) => set('commissionerMessage', e.target.value)}
             className={inputClass + ' min-h-[120px] resize-y'}
             placeholder="Message to display on upcoming draft cards…"
+          />
+        </Field>
+
+        <Field label="Metric Explainer" hint="Editorial story shown on the public contest page below standings. Markdown supported.">
+          <textarea
+            value={form.metricExplainer}
+            onChange={(e) => set('metricExplainer', e.target.value)}
+            className={inputClass + ' min-h-[160px] resize-y'}
+            placeholder="Tell the story of why this week's metric is interesting, what to watch for, which teams are positioned well…"
           />
         </Field>
 
