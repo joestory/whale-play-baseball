@@ -13,22 +13,34 @@ export async function POST(req: NextRequest) {
 
     const activeContests = await prisma.contest.findMany({
       where: { status: 'ACTIVE' },
+      select: { id: true, name: true },
     })
 
+    if (activeContests.length === 0) {
+      console.log('[cron/poll] No active contests to poll')
+      return NextResponse.json({ polled: 0, results: [] })
+    }
+
     const results = await Promise.allSettled(
-      activeContests.map((c) => pollContest(c.id))
+      activeContests.map((c) => pollContest(c.id).then((r) => ({ ...r, name: c.name })))
     )
 
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length
-    const failed = results.filter((r) => r.status === 'rejected').length
+    const summary = results.map((r, i) => {
+      if (r.status === 'fulfilled') {
+        const { name, changed, details } = r.value
+        console.log(`[cron/poll] ${name}: changed=${changed} — ${details}`)
+        return { name, changed, details }
+      } else {
+        const name = activeContests[i].name
+        console.error(`[cron/poll] ${name}: ERROR — ${r.reason?.message}`)
+        return { name, changed: false, error: r.reason?.message }
+      }
+    })
 
     return NextResponse.json({
       polled: activeContests.length,
-      succeeded,
-      failed,
-      errors: results
-        .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-        .map((r) => r.reason?.message),
+      dataChanged: summary.some((r) => r.changed),
+      results: summary,
     })
   } catch (err) {
     console.error('Cron poll error:', err)

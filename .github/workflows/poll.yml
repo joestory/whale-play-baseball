@@ -1,0 +1,33 @@
+name: Poll Standings
+
+on:
+  schedule:
+    # Hourly 9PM–9AM Pacific (04:00–16:00 UTC) while finding Savant's update window.
+    # Once confirmed, narrow this to a single time (e.g. "0 12 * * *").
+    - cron: '0 4-16 * * *'
+  workflow_dispatch: # allow manual trigger from GitHub Actions UI
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll standings
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            https://whaleplayfantasy.com/api/cron/poll \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
+          echo "HTTP $STATUS"
+          echo "$BODY" | jq .
+          if [ "$STATUS" != "200" ]; then
+            echo "Poll failed with status $STATUS"
+            exit 1
+          fi
+          DATA_CHANGED=$(echo "$BODY" | jq -r '.dataChanged // false')
+          if [ "$DATA_CHANGED" = "true" ]; then
+            echo "✅ NEW DATA DETECTED"
+          else
+            echo "— No new data this poll"
+          fi

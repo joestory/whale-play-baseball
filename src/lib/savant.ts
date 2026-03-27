@@ -62,13 +62,18 @@ export function parseCsv(csvText: string): CsvRow[] {
   }) as CsvRow[]
 }
 
-export async function pollContest(contestId: string): Promise<void> {
+export async function pollContest(contestId: string): Promise<{ changed: boolean; details: string }> {
   const contest = await prisma.contest.findUniqueOrThrow({
     where: { id: contestId },
-    include: { picks: true },
+    include: {
+      picks: true,
+      standings: { select: { managerId: true, metricValue: true } },
+    },
   })
 
-  if (contest.picks.length === 0) return
+  if (contest.picks.length === 0) return { changed: false, details: 'no picks' }
+
+  const prevValues = new Map(contest.standings.map((s) => [s.managerId, s.metricValue]))
 
   const config = parseMetricConfig(contest.metricConfig)
   const csvText = await fetchCsv(contest.savantCsvUrl)
@@ -112,6 +117,19 @@ export async function pollContest(contestId: string): Promise<void> {
       data: { lastPolledAt: new Date() },
     }),
   ])
+
+  const changes: string[] = []
+  for (const [managerId, newValue] of managerValues) {
+    const prev = prevValues.get(managerId) ?? 0
+    if (Math.abs(newValue - prev) > 0.0001) {
+      changes.push(`manager ${managerId}: ${prev} → ${newValue}`)
+    }
+  }
+
+  return {
+    changed: changes.length > 0,
+    details: changes.length > 0 ? changes.join(', ') : 'no change',
+  }
 }
 
 export async function checkContestStatuses(): Promise<void> {
