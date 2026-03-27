@@ -106,7 +106,7 @@ function Sparkline({
 
 function computeDaysRemaining(endDateStr: string): number {
   const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
-  return Math.round((new Date(endDateStr).getTime() - new Date(todayEastern).getTime()) / 86400000)
+  return Math.round((new Date(endDateStr).getTime() - new Date(todayEastern).getTime()) / 86400000) + 1
 }
 
 function daysRemainingColor(days: number): string {
