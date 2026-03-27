@@ -79,10 +79,11 @@ export async function pollContest(contestId: string): Promise<{ changed: boolean
   const csvText = await fetchCsv(contest.savantCsvUrl)
   const allRows = parseCsv(csvText)
 
-  // Exclude future-dated rows (Savant sometimes includes scheduled games)
+  // Exclude today and future-dated rows — Savant includes scheduled games that haven't
+  // been played yet. Only include dates strictly before today so all data is complete.
   const today = new Date().toISOString().slice(0, 10)
   const rows = config.dateColumn
-    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) <= today)
+    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) < today)
     : allRows
 
   const teamTotals = aggregateByTeam(rows, config)
