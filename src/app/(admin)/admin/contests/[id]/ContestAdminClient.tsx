@@ -15,6 +15,7 @@ type ContestInfo = {
   metricDescription: string
   commissionerMessage: string
   metricExplainer: string
+  hidden: boolean
   sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
@@ -129,6 +130,8 @@ export default function ContestAdminClient({
   const [fetchingColumns, setFetchingColumns] = useState(false)
   const [columnFetchStatus, setColumnFetchStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
+  const [hidden, setHidden] = useState(contest.hidden)
+  const [togglingHidden, setTogglingHidden] = useState(false)
   const [sweepstakesPhoto, setSweepstakesPhoto] = useState<string | null>(contest.sweepstakesPhoto)
   const [photoFileName, setPhotoFileName] = useState<string | null>(null)
 
@@ -201,6 +204,20 @@ export default function ContestAdminClient({
       setSweepstakesPhoto(reader.result as string)
     }
     reader.readAsDataURL(file)
+  }
+
+  async function handleToggleHidden() {
+    setTogglingHidden(true)
+    try {
+      const res = await fetch(`/api/admin/contests/${contest.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden: !hidden }),
+      })
+      if (res.ok) setHidden((h) => !h)
+    } finally {
+      setTogglingHidden(false)
+    }
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
@@ -418,13 +435,26 @@ export default function ContestAdminClient({
         <a href="/admin" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">← Contests</a>
         <div className="flex items-center justify-between mt-1">
           <h1 className="text-xl font-semibold text-white">{contest.name}</h1>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-sm font-semibold text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
-          >
-            {deleting ? 'Deleting…' : 'Delete'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleHidden}
+              disabled={togglingHidden}
+              className={`text-sm font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
+                hidden
+                  ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+                  : 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20'
+              }`}
+            >
+              {hidden ? 'Hidden' : 'Visible'}
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-sm font-semibold text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
         </div>
       </div>
 

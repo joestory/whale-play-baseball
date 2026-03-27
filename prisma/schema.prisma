@@ -44,6 +44,7 @@ model Contest {
   draftCloseAt         DateTime
   cascadeWindowMinutes Int           @default(60)
   status               ContestStatus @default(UPCOMING)
+  hidden               Boolean       @default(false)
   lastPolledAt         DateTime?
   sweepstakesPhoto     String?
   createdAt            DateTime      @default(now())

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 
 export default async function DraftIndexPage() {
   const activeContest = await prisma.contest.findFirst({
-    where: { status: 'DRAFTING' },
+    where: { status: 'DRAFTING', hidden: false },
     orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
   })
 
@@ -13,7 +13,7 @@ export default async function DraftIndexPage() {
   }
 
   const upcomingContest = await prisma.contest.findFirst({
-    where: { status: 'UPCOMING' },
+    where: { status: 'UPCOMING', hidden: false },
     orderBy: { draftOpenAt: 'asc' },
   })
 
