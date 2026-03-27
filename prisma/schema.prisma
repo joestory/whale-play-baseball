@@ -35,6 +35,7 @@ model Contest {
   metricName           String
   metricDescription    String?
   commissionerMessage  String?
+  metricExplainer      String?
   savantCsvUrl         String
   metricConfig         Json
   startDate            DateTime
@@ -43,6 +44,7 @@ model Contest {
   draftCloseAt         DateTime
   cascadeWindowMinutes Int           @default(60)
   status               ContestStatus @default(UPCOMING)
+  hidden               Boolean       @default(false)
   lastPolledAt         DateTime?
   sweepstakesPhoto     String?
   createdAt            DateTime      @default(now())

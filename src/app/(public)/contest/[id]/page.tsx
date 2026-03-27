@@ -42,7 +42,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${contest.name} — Week ${contest.weekNumber} Standings`,
       description,
       siteName: 'Whale Play Baseball',
-      images: [{ url: '/whale.png', width: 1200, height: 1200 }],
     },
   }
 }
@@ -112,7 +111,16 @@ export default async function ContestPage({ params }: Props) {
           initialLastPolledAt={contest.lastPolledAt?.toISOString() ?? null}
           initialStandings={initialStandings}
           contestDates={contestDates}
+          contestEndDate={contest.endDate.toISOString().slice(0, 10)}
         />
+
+        {/* Metric explainer — editorial story authored by the commissioner */}
+        {contest.metricExplainer && (
+          <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-4">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">About This Week&apos;s Metric</h2>
+            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{contest.metricExplainer}</p>
+          </div>
+        )}
 
       </div>
     </div>
