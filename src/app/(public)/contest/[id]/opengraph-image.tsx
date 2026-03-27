@@ -21,7 +21,7 @@ export default async function Image({ params }: Props) {
         orderBy: { rank: 'asc' },
         take: 3,
         include: {
-          manager: { select: { username: true, icon: true } },
+          manager: { select: { username: true } },
         },
       },
       picks: { select: { managerId: true } },
@@ -101,8 +101,7 @@ export default async function Image({ params }: Props) {
                 {rankLabel(s.rank, i)}
               </span>
 
-              {/* Icon + name */}
-              <span style={{ fontSize: 28 }}>{s.manager.icon ?? '⚾'}</span>
+              {/* Name */}
               <span style={{ color: '#e4e4e7', fontSize: 26, fontWeight: 600, flex: 1 }}>
                 {s.manager.username}
               </span>
