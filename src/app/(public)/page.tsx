@@ -24,14 +24,14 @@ export const metadata: Metadata = {
 }
 
 function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
-  const today = new Date().toISOString().slice(0, 10)
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
   const dates: string[] = []
   const cursor = new Date(startDate)
   while (cursor <= endDate) {
     const d = cursor.toISOString().slice(0, 10)
-    if (d > today) break
+    if (d >= todayEastern) break
     dates.push(d)
-    cursor.setDate(cursor.getDate() + 1)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return dates
 }

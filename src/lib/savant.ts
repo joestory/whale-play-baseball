@@ -80,10 +80,10 @@ export async function pollContest(contestId: string): Promise<{ changed: boolean
   const allRows = parseCsv(csvText)
 
   // Exclude today and future-dated rows — Savant includes scheduled games that haven't
-  // been played yet. Only include dates strictly before today so all data is complete.
-  const today = new Date().toISOString().slice(0, 10)
+  // been played yet. Only include dates strictly before today (Eastern) so all data is complete.
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
   const rows = config.dateColumn
-    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) < today)
+    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) < todayEastern)
     : allRows
 
   const teamTotals = aggregateByTeam(rows, config)

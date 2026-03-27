@@ -2,16 +2,18 @@ import { getTeam } from './constants'
 import type { StandingRow } from '@/types'
 
 /**
- * Returns dates from startDate through min(today UTC, endDate), inclusive.
+ * Returns dates from startDate through min(yesterday Eastern, endDate), inclusive.
+ * Uses Eastern time (America/New_York) since MLB games run on Eastern schedule.
+ * Excludes today because games may still be in progress.
  */
 export function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
-  const todayUTC = new Date().toISOString().slice(0, 10)
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
 
   const dates: string[] = []
   const cursor = new Date(startDate)
   while (cursor <= endDate) {
     const d = cursor.toISOString().slice(0, 10)
-    if (d > todayUTC) break
+    if (d >= todayEastern) break
     dates.push(d)
     cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
