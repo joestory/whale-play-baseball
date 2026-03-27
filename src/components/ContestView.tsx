@@ -4,11 +4,24 @@ import { useState } from 'react'
 import type { StandingRow } from '@/types'
 import StandingsAccordion from './StandingsAccordion'
 
+function computeDaysRemaining(endDateStr: string): number {
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  return Math.round((new Date(endDateStr).getTime() - new Date(todayEastern).getTime()) / 86400000)
+}
+
+function daysRemainingColor(days: number): string {
+  if (days === 1) return 'text-red-400'
+  if (days === 2) return 'text-orange-400'
+  if (days === 3) return 'text-yellow-400'
+  return 'text-zinc-500'
+}
+
 type Props = {
   status: string
   standingRows: StandingRow[]
   contestDates: string[]
   metricName: string
+  contestEndDate: string | null
   sweepstakesDescription: string | null
   sweepstakesPhoto: string | null
 }
@@ -18,6 +31,7 @@ export default function ContestView({
   standingRows,
   contestDates,
   metricName,
+  contestEndDate,
   sweepstakesDescription,
   sweepstakesPhoto,
 }: Props) {
@@ -59,13 +73,23 @@ export default function ContestView({
         </div>
       )}
 
-      {view === 'standings' && hasStandings && (
-        <StandingsAccordion
-          standings={standingRows}
-          contestDates={contestDates}
-          metricName={metricName}
-        />
-      )}
+      {view === 'standings' && hasStandings && (() => {
+        const days = contestEndDate ? computeDaysRemaining(contestEndDate) : 0
+        return (
+          <>
+            {days > 0 && (
+              <p className={`text-[10px] font-medium -mt-1 ${daysRemainingColor(days)}`}>
+                {days} {days === 1 ? 'day' : 'days'} remaining
+              </p>
+            )}
+            <StandingsAccordion
+              standings={standingRows}
+              contestDates={contestDates}
+              metricName={metricName}
+            />
+          </>
+        )
+      })()}
 
       {(view === 'sweepstakes' || !hasStandings) && hasSweepstakes && (
         <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] overflow-hidden">

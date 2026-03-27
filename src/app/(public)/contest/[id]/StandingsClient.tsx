@@ -104,6 +104,18 @@ function Sparkline({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
+function computeDaysRemaining(endDateStr: string): number {
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  return Math.round((new Date(endDateStr).getTime() - new Date(todayEastern).getTime()) / 86400000)
+}
+
+function daysRemainingColor(days: number): string {
+  if (days === 1) return 'text-red-400'
+  if (days === 2) return 'text-orange-400'
+  if (days === 3) return 'text-yellow-400'
+  return 'text-zinc-500'
+}
+
 export default function StandingsClient({
   contestId,
   contestStatus,
@@ -111,6 +123,7 @@ export default function StandingsClient({
   initialLastPolledAt,
   initialStandings,
   contestDates,
+  contestEndDate,
 }: {
   contestId: string
   contestStatus: string
@@ -118,6 +131,7 @@ export default function StandingsClient({
   initialLastPolledAt: string | null
   initialStandings: StandingRow[]
   contestDates: string[]
+  contestEndDate: string
 }) {
   const [standings, setStandings] = useState(initialStandings)
   const [lastPolledAt, setLastPolledAt] = useState(initialLastPolledAt)
@@ -172,7 +186,7 @@ export default function StandingsClient({
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
           Standings
         </h2>
@@ -190,6 +204,14 @@ export default function StandingsClient({
           </button>
         </div>
       </div>
+      {(() => {
+        const days = computeDaysRemaining(contestEndDate)
+        return days > 0 ? (
+          <p className={`text-[10px] font-medium mb-3 ${daysRemainingColor(days)}`}>
+            {days} {days === 1 ? 'day' : 'days'} remaining
+          </p>
+        ) : null
+      })()}
 
       {standings.length > 0 ? (
         <div className="space-y-2">

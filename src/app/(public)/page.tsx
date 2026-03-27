@@ -128,6 +128,7 @@ export default async function HomePage() {
               standingRows={standingRows}
               contestDates={contestDates}
               metricName={contest.metricName}
+              contestEndDate={contest.endDate.toISOString().slice(0, 10)}
               sweepstakesDescription={contest.metricDescription ?? null}
               sweepstakesPhoto={contest.sweepstakesPhoto ?? null}
             />

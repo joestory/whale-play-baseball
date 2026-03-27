@@ -111,6 +111,7 @@ export default async function ContestPage({ params }: Props) {
           initialLastPolledAt={contest.lastPolledAt?.toISOString() ?? null}
           initialStandings={initialStandings}
           contestDates={contestDates}
+          contestEndDate={contest.endDate.toISOString().slice(0, 10)}
         />
 
         {/* Metric explainer — editorial story authored by the commissioner */}
