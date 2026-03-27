@@ -67,7 +67,7 @@ async function getContestData() {
 }
 
 function buildStandingRows(
-  contest: { standings: { id: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
+  contest: { standings: { id: string; managerId: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
   contestDates: string[]
 ): StandingRow[] {
   const dateSet = new Set(contestDates)
