@@ -35,30 +35,63 @@ function contestDatesUpToToday(startDate: Date, endDate: Date): string[] {
   return dates
 }
 
+const contestInclude = {
+  standings: {
+    orderBy: { rank: 'asc' as const },
+    include: { manager: { select: { id: true, username: true, icon: true } } },
+  },
+  picks: { select: { managerId: true } },
+}
+
 async function getContestData() {
   const active = await prisma.contest.findFirst({
     where: { status: { in: ['DRAFTING', 'ACTIVE'] } },
     orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
-    include: {
-      standings: {
-        orderBy: { rank: 'asc' },
-        include: { manager: { select: { id: true, username: true, icon: true } } },
-      },
-      picks: { select: { managerId: true } },
-    },
+    include: contestInclude,
   })
-  if (active) return { contest: active, upcoming: null }
+  if (active) return { active, upcoming: null, completed: null }
 
-  const upcoming = await prisma.contest.findFirst({
-    where: { status: 'UPCOMING' },
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
-    select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, commissionerMessage: true, sweepstakesPhoto: true, draftOpenAt: true },
+  const [upcoming, completed] = await Promise.all([
+    prisma.contest.findFirst({
+      where: { status: 'UPCOMING' },
+      orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+      select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, commissionerMessage: true, sweepstakesPhoto: true, draftOpenAt: true },
+    }),
+    prisma.contest.findFirst({
+      where: { status: 'COMPLETED' },
+      orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+      include: contestInclude,
+    }),
+  ])
+  return { active: null, upcoming, completed }
+}
+
+function buildStandingRows(
+  contest: { standings: { id: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
+  contestDates: string[]
+): StandingRow[] {
+  const dateSet = new Set(contestDates)
+  const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
+  return contest.standings.filter((s) => pickedManagerIds.has(s.managerId)).map((s) => {
+    const team = getTeam(s.teamCode)
+    const raw = (s.dailyValues ?? {}) as Record<string, number>
+    return {
+      id: s.id,
+      rank: s.rank,
+      managerIcon: s.manager.icon ?? '⚾',
+      managerUsername: s.manager.username,
+      teamCode: s.teamCode,
+      teamName: team?.name ?? s.teamCode,
+      teamLogo: team?.logo ?? '',
+      metricValue: s.metricValue,
+      dailyValues: Object.fromEntries(Object.entries(raw).filter(([d]) => dateSet.has(d))),
+      relatedValues: (s.relatedValues ?? {}) as Record<string, number>,
+    }
   })
-  return { contest: null, upcoming }
 }
 
 export default async function HomePage() {
-  const [session, { contest, upcoming }] = await Promise.all([
+  const [session, { active, upcoming, completed }] = await Promise.all([
     auth(),
     getContestData(),
   ])
@@ -66,29 +99,32 @@ export default async function HomePage() {
   const isLoggedIn = !!session?.user
   const isAdmin = session?.user?.isAdmin ?? false
 
+  // The contest to show standings for — active takes priority, otherwise most recent completed
+  const standingsContest = active ?? completed
   let standingRows: StandingRow[] = []
   let contestDates: string[] = []
+  if (standingsContest) {
+    contestDates = contestDatesUpToToday(standingsContest.startDate, standingsContest.endDate)
+    standingRows = buildStandingRows(standingsContest, contestDates)
+  }
 
-  if (contest) {
-    contestDates = contestDatesUpToToday(contest.startDate, contest.endDate)
-    const dateSet = new Set(contestDates)
-    const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
-    standingRows = contest.standings.filter((s) => pickedManagerIds.has(s.managerId)).map((s) => {
-      const team = getTeam(s.teamCode)
-      const raw = (s.dailyValues ?? {}) as Record<string, number>
-      return {
-        id: s.id,
-        rank: s.rank,
-        managerIcon: s.manager.icon ?? '⚾',
-        managerUsername: s.manager.username,
-        teamCode: s.teamCode,
-        teamName: team?.name ?? s.teamCode,
-        teamLogo: team?.logo ?? '',
-        metricValue: s.metricValue,
-        dailyValues: Object.fromEntries(Object.entries(raw).filter(([d]) => dateSet.has(d))),
-        relatedValues: (s.relatedValues ?? {}) as Record<string, number>,
-      }
-    })
+  const statusBadge = (status: string) => {
+    if (status === 'DRAFTING') return (
+      <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        Draft Open
+      </span>
+    )
+    if (status === 'COMPLETED') return (
+      <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700">
+        Final
+      </span>
+    )
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+        Live
+      </span>
+    )
   }
 
   return (
@@ -96,44 +132,8 @@ export default async function HomePage() {
       <TopNav />
 
       <div className="max-w-lg mx-auto px-4 pt-8 pb-6 space-y-4">
-        {contest ? (
-          <>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                {contest.status === 'DRAFTING' ? (
-                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    Draft Open
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    Live
-                  </span>
-                )}
-                <h2 className="text-xl font-semibold text-white mt-2">{contest.name}</h2>
-                <p className="text-sm text-zinc-500">{contest.metricName}</p>
-              </div>
-              {isLoggedIn && !isAdmin && contest.status === 'DRAFTING' && (
-                <Link
-                  href={`/draft/${contest.id}`}
-                  className="flex-shrink-0 bg-green-500 hover:bg-green-400 text-black text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
-                >
-                  Pick →
-                </Link>
-              )}
-            </div>
-
-            <ContestView
-              status={contest.status}
-              standingRows={standingRows}
-              contestDates={contestDates}
-              metricName={contest.metricName}
-              contestEndDate={contest.endDate.toISOString().slice(0, 10)}
-              sweepstakesDescription={contest.metricDescription ?? null}
-              sweepstakesPhoto={contest.sweepstakesPhoto ?? null}
-            />
-          </>
-        ) : upcoming ? (
+        {/* Upcoming contest card — shown whenever there's no active contest */}
+        {!active && upcoming && (
           <div className="space-y-4">
             <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center space-y-3">
               <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Next Contest</p>
@@ -159,7 +159,40 @@ export default async function HomePage() {
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {/* Active or completed standings */}
+        {standingsContest && (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {statusBadge(standingsContest.status)}
+                <h2 className="text-xl font-semibold text-white mt-2">{standingsContest.name}</h2>
+                <p className="text-sm text-zinc-500">{standingsContest.metricName}</p>
+              </div>
+              {isLoggedIn && !isAdmin && standingsContest.status === 'DRAFTING' && (
+                <Link
+                  href={`/draft/${standingsContest.id}`}
+                  className="flex-shrink-0 bg-green-500 hover:bg-green-400 text-black text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  Pick →
+                </Link>
+              )}
+            </div>
+            <ContestView
+              status={standingsContest.status}
+              standingRows={standingRows}
+              contestDates={contestDates}
+              metricName={standingsContest.metricName}
+              contestEndDate={standingsContest.endDate.toISOString().slice(0, 10)}
+              sweepstakesDescription={standingsContest.metricDescription ?? null}
+              sweepstakesPhoto={standingsContest.sweepstakesPhoto ?? null}
+            />
+          </>
+        )}
+
+        {/* Nothing to show */}
+        {!active && !upcoming && !completed && (
           <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-8 text-center">
             <p className="text-zinc-500">No active contest right now.</p>
             <p className="text-zinc-600 text-sm mt-1">Check back soon!</p>
