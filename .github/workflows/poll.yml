@@ -2,9 +2,9 @@ name: Poll Standings
 
 on:
   schedule:
-    # Hourly 9PM–9AM Pacific (04:00–16:00 UTC) while finding Savant's update window.
-    # Once confirmed, narrow this to a single time (e.g. "0 12 * * *").
-    - cron: '0 4-16 * * *'
+    # Nightly 2AM–7AM PDT (09:00–14:00 UTC). Starts at 2AM, retries hourly until
+    # data is found, then skips remaining runs for the night (enforced server-side).
+    - cron: '0 9-14 * * *'
   workflow_dispatch: # allow manual trigger from GitHub Actions UI
 
 jobs:

@@ -14,7 +14,7 @@ export async function POST(
   const { id: contestId } = await params
 
   try {
-    await pollContest(contestId)
+    await pollContest(contestId, { force: true })
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Poll failed'

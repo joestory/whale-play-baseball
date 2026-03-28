@@ -62,7 +62,24 @@ export function parseCsv(csvText: string): CsvRow[] {
   }) as CsvRow[]
 }
 
-export async function pollContest(contestId: string): Promise<{ changed: boolean; details: string }> {
+// Returns the start of tonight's nightly poll window: 2AM Pacific = 09:00 UTC (PDT/UTC-7).
+// Handles PDT/PST automatically by computing the Pacific offset from a noon UTC anchor.
+function tonightWindowStart(): Date {
+  const now = new Date()
+  const todayPacific = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  const [y, m, d] = todayPacific.split('-').map(Number)
+  const noonUtc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  const pacificHour = Number(
+    noonUtc.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour: '2-digit', hour12: false })
+  )
+  const pacificOffsetHours = 12 - pacificHour // 7 for PDT, 8 for PST
+  return new Date(Date.UTC(y, m - 1, d, 2 + pacificOffsetHours, 0, 0))
+}
+
+export async function pollContest(
+  contestId: string,
+  { force = false }: { force?: boolean } = {}
+): Promise<{ changed: boolean; details: string }> {
   const contest = await prisma.contest.findUniqueOrThrow({
     where: { id: contestId },
     include: {
@@ -72,6 +89,11 @@ export async function pollContest(contestId: string): Promise<{ changed: boolean
   })
 
   if (contest.picks.length === 0) return { changed: false, details: 'no picks' }
+
+  // Skip if data was already found in tonight's window (2AM PDT onward), unless forced.
+  if (!force && contest.lastPolledAt && contest.lastPolledAt >= tonightWindowStart()) {
+    return { changed: false, details: 'already updated tonight' }
+  }
 
   const prevValues = new Map(contest.standings.map((s) => [s.managerId, s.metricValue]))
 
@@ -97,33 +119,27 @@ export async function pollContest(contestId: string): Promise<{ changed: boolean
 
   const ranks = computeRanks(managerValues, config.higherIsBetter !== false)
 
-  await prisma.$transaction([
-    ...contest.picks.map((pick) =>
-      prisma.standing.upsert({
-        where: { contestId_managerId: { contestId, managerId: pick.managerId } },
-        create: {
-          contestId,
-          managerId: pick.managerId,
-          teamCode: pick.teamCode,
-          metricValue: managerValues.get(pick.managerId) ?? 0,
-          rank: ranks.get(pick.managerId) ?? null,
-          dailyValues: teamDaily.get(pick.teamCode) ?? {},
-          relatedValues: teamRelated.get(pick.teamCode) ?? {},
-        },
-        update: {
-          teamCode: pick.teamCode,
-          metricValue: managerValues.get(pick.managerId) ?? 0,
-          rank: ranks.get(pick.managerId) ?? null,
-          dailyValues: teamDaily.get(pick.teamCode) ?? {},
-          relatedValues: teamRelated.get(pick.teamCode) ?? {},
-        },
-      })
-    ),
-    prisma.contest.update({
-      where: { id: contestId },
-      data: { lastPolledAt: new Date() },
-    }),
-  ])
+  const upserts = contest.picks.map((pick) =>
+    prisma.standing.upsert({
+      where: { contestId_managerId: { contestId, managerId: pick.managerId } },
+      create: {
+        contestId,
+        managerId: pick.managerId,
+        teamCode: pick.teamCode,
+        metricValue: managerValues.get(pick.managerId) ?? 0,
+        rank: ranks.get(pick.managerId) ?? null,
+        dailyValues: teamDaily.get(pick.teamCode) ?? {},
+        relatedValues: teamRelated.get(pick.teamCode) ?? {},
+      },
+      update: {
+        teamCode: pick.teamCode,
+        metricValue: managerValues.get(pick.managerId) ?? 0,
+        rank: ranks.get(pick.managerId) ?? null,
+        dailyValues: teamDaily.get(pick.teamCode) ?? {},
+        relatedValues: teamRelated.get(pick.teamCode) ?? {},
+      },
+    })
+  )
 
   const changes: string[] = []
   for (const [managerId, newValue] of managerValues) {
@@ -133,9 +149,21 @@ export async function pollContest(contestId: string): Promise<{ changed: boolean
     }
   }
 
+  const changed = changes.length > 0
+
+  // Only update lastPolledAt when data actually changed — this both timestamps
+  // the true last data refresh (shown in the UI) and acts as the "already updated
+  // tonight" signal that prevents redundant retries.
+  await prisma.$transaction([
+    ...upserts,
+    ...(changed
+      ? [prisma.contest.update({ where: { id: contestId }, data: { lastPolledAt: new Date() } })]
+      : []),
+  ])
+
   return {
-    changed: changes.length > 0,
-    details: changes.length > 0 ? changes.join(', ') : 'no change',
+    changed,
+    details: changed ? changes.join(', ') : 'no change',
   }
 }
 

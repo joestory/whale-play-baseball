@@ -31,74 +31,37 @@ function apiToRow(s: ApiStanding, dateSet: Set<string>): StandingRow {
   }
 }
 
-// ─── Sparkline ────────────────────────────────────────────────────────────────
+// ─── Trend ────────────────────────────────────────────────────────────────────
 
-function computeSparklineRange(
+// Returns a map of standingId → rank delta (positive = moved up, negative = moved down, null = no prev data)
+function computeTrend(
   standings: StandingRow[],
-  dates: string[]
-): { min: number; max: number } | null {
-  let globalMin = Infinity
-  let globalMax = -Infinity
-  for (const s of standings) {
-    for (const d of dates) {
-      const v = s.dailyValues[d]
-      if (v != null) {
-        if (v < globalMin) globalMin = v
-        if (v > globalMax) globalMax = v
-      }
-    }
-  }
-  if (!isFinite(globalMin) || globalMax === globalMin) return null
-  return { min: globalMin, max: globalMax }
-}
+  contestDates: string[]
+): Map<string, number | null> {
+  if (contestDates.length < 2) return new Map(standings.map((s) => [s.id, null]))
 
-function Sparkline({
-  dailyValues,
-  dates,
-  globalMin,
-  globalMax,
-}: {
-  dailyValues: Record<string, number>
-  dates: string[]
-  globalMin: number
-  globalMax: number
-}) {
-  const points = dates
-    .map((d) => dailyValues[d])
-    .filter((v): v is number => v != null)
-  if (points.length < 2) return <span className="text-zinc-600 tabular-nums">—</span>
+  const prevDate = contestDates[contestDates.length - 2]
+  const withPrev = standings
+    .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? null }))
+    .filter((x): x is { id: string; prevVal: number } => x.prevVal != null)
+    .sort((a, b) => b.prevVal - a.prevVal)
 
-  const W = 60
-  const H = 24
-  const range = globalMax - globalMin
-  const isGreen = points[points.length - 1] > points[0]
-  const stroke = isGreen ? '#4ade80' : '#52525b' // green-400 : zinc-600
+  const prevRankMap = new Map<string, number>()
+  withPrev.forEach((x, i) => {
+    const prevRank =
+      i === 0 ? 1
+      : withPrev[i].prevVal === withPrev[i - 1].prevVal
+      ? prevRankMap.get(withPrev[i - 1].id)!
+      : i + 1
+    prevRankMap.set(x.id, prevRank)
+  })
 
-  const coords = points
-    .map((v, i) => {
-      const x = (i / (points.length - 1)) * (W - 2) + 1
-      const y = H - 1 - ((v - globalMin) / range) * (H - 2)
-      return `${x.toFixed(1)},${y.toFixed(1)}`
+  return new Map(
+    standings.map((s) => {
+      const prevRank = prevRankMap.get(s.id)
+      if (prevRank == null || s.rank == null) return [s.id, null]
+      return [s.id, prevRank - s.rank]
     })
-    .join(' ')
-
-  return (
-    <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      className="overflow-visible shrink-0"
-      aria-hidden="true"
-    >
-      <polyline
-        points={coords}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
 
@@ -146,7 +109,7 @@ export default function StandingsClient({
     return () => clearInterval(interval)
   }, [poll, contestStatus])
 
-  const sparklineRange = computeSparklineRange(standings, contestDates)
+  const trendMap = computeTrend(standings, contestDates)
 
   // Build rank labels with T-prefix for ties (e.g. "T2" when multiple share rank 2)
   const rankFreq = new Map<number, number>()
@@ -193,49 +156,50 @@ export default function StandingsClient({
 
       {standings.length > 0 ? (
         <div className="space-y-2">
-          {standings.map((s) => (
-            <div
-              key={s.id}
-              className="bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3 flex items-center gap-3"
-            >
-              <span className="text-xl font-bold text-zinc-700 w-8 text-center tabular-nums">
-                {rankLabel(s)}
-              </span>
+          {standings.map((s) => {
+            const trend = trendMap.get(s.id) ?? null
+            return (
+              <div
+                key={s.id}
+                className="bg-[#111111] rounded-xl border border-[#1f1f1f] px-4 py-3 flex items-center gap-3"
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {s.teamLogo && (
+                    <img
+                      src={s.teamLogo}
+                      alt={s.teamName}
+                      className="w-7 h-7 object-contain shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-zinc-100 truncate">
+                      <span className="mr-1">{s.managerIcon}</span>
+                      {s.managerUsername}
+                    </p>
+                    <p className="text-xs text-zinc-500">{s.teamName}</p>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                {s.teamLogo && (
-                  <img
-                    src={s.teamLogo}
-                    alt={s.teamName}
-                    className="w-7 h-7 object-contain shrink-0"
-                  />
-                )}
-                <div className="min-w-0">
-                  <p className="font-medium text-zinc-100 truncate">
-                    <span className="mr-1">{s.managerIcon}</span>
-                    {s.managerUsername}
+                <div className="text-right shrink-0">
+                  <div className="flex items-center justify-end gap-1 mb-0.5">
+                    <span className="text-xs font-semibold text-zinc-400">{rankLabel(s)}</span>
+                    {trend != null && trend !== 0 && (
+                      <span className={`text-[10px] font-medium ${trend > 0 ? 'text-green-400' : 'text-rose-400'}`}>
+                        {trend > 0 ? `↑${trend}` : `↓${Math.abs(trend)}`}
+                      </span>
+                    )}
+                    {trend === 0 && (
+                      <span className="text-[10px] text-zinc-600">—</span>
+                    )}
+                  </div>
+                  <p className="text-xl font-bold text-green-400 tabular-nums">
+                    {s.metricValue.toFixed(s.metricValue % 1 === 0 ? 0 : 2)}
                   </p>
-                  <p className="text-xs text-zinc-500">{s.teamName}</p>
+                  <p className="text-xs text-zinc-600">{metricName}</p>
                 </div>
               </div>
-
-              {sparklineRange ? (
-                <Sparkline
-                  dailyValues={s.dailyValues}
-                  dates={contestDates}
-                  globalMin={sparklineRange.min}
-                  globalMax={sparklineRange.max}
-                />
-              ) : null}
-
-              <div className="text-right shrink-0">
-                <p className="text-xl font-bold text-green-400 tabular-nums">
-                  {s.metricValue.toFixed(s.metricValue % 1 === 0 ? 0 : 2)}
-                </p>
-                <p className="text-xs text-zinc-600">{metricName}</p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <div className="bg-[#111111] rounded-xl border border-[#1f1f1f] p-6 text-center text-zinc-600">
