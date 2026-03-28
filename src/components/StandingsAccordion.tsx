@@ -3,6 +3,74 @@
 import { useState } from 'react'
 import type { StandingRow } from '@/types'
 
+function computeSparklineRange(
+  standings: StandingRow[],
+  dates: string[]
+): { min: number; max: number } | null {
+  let globalMin = Infinity
+  let globalMax = -Infinity
+  for (const s of standings) {
+    for (const d of dates) {
+      const v = s.dailyValues[d]
+      if (v != null) {
+        if (v < globalMin) globalMin = v
+        if (v > globalMax) globalMax = v
+      }
+    }
+  }
+  if (!isFinite(globalMin) || globalMax === globalMin) return null
+  return { min: globalMin, max: globalMax }
+}
+
+function Sparkline({
+  dailyValues,
+  dates,
+  globalMin,
+  globalMax,
+}: {
+  dailyValues: Record<string, number>
+  dates: string[]
+  globalMin: number
+  globalMax: number
+}) {
+  const points = dates
+    .map((d) => dailyValues[d])
+    .filter((v): v is number => v != null)
+  if (points.length < 2) return null
+
+  const W = 56
+  const H = 22
+  const range = globalMax - globalMin
+  const stroke = points[points.length - 1] >= points[0] ? '#4ade80' : '#52525b'
+
+  const coords = points
+    .map((v, i) => {
+      const x = (i / (points.length - 1)) * (W - 2) + 1
+      const y = H - 1 - ((v - globalMin) / range) * (H - 2)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+
+  return (
+    <svg
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      className="overflow-visible shrink-0"
+      aria-hidden="true"
+    >
+      <polyline
+        points={coords}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function formatDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
@@ -39,6 +107,7 @@ export default function StandingsAccordion({
   const [openId, setOpenId] = useState<string | null>(null)
   const rankLabels = buildRankLabels(standings)
   const today = new Date().toLocaleDateString('en-CA')
+  const sparklineRange = computeSparklineRange(standings, contestDates)
 
   if (standings.length === 0) {
     return (
@@ -70,14 +139,24 @@ export default function StandingsAccordion({
                 <span className="text-sm font-medium text-zinc-100">{s.managerUsername}</span>
               </div>
 
-              {/* Bottom: team logo (left) · metric (right) */}
-              <div className="grid grid-cols-2">
+              {/* Bottom: team logo · sparkline · metric */}
+              <div className={`grid ${sparklineRange ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <div className="flex items-center justify-center py-2">
                   {s.teamLogo
                     ? <img src={s.teamLogo} alt={s.teamName} className="w-14 h-14 object-contain" />
                     : <span className="text-2xl text-zinc-600">{s.teamCode}</span>
                   }
                 </div>
+                {sparklineRange && (
+                  <div className="flex items-center justify-center py-2">
+                    <Sparkline
+                      dailyValues={s.dailyValues}
+                      dates={contestDates}
+                      globalMin={sparklineRange.min}
+                      globalMax={sparklineRange.max}
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-center py-2">
                   <span className="text-4xl font-bold text-green-400 tabular-nums">
                     {formatValue(s.metricValue)}

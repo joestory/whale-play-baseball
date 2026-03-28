@@ -78,6 +78,7 @@ export async function PATCH(
   if (body.metricName !== undefined) updateData.metricName = body.metricName
   if (body.metricDescription !== undefined) updateData.metricDescription = body.metricDescription
   if (body.commissionerMessage !== undefined) updateData.commissionerMessage = body.commissionerMessage
+  if (body.metricExplainer !== undefined) updateData.metricExplainer = body.metricExplainer
   if (body.savantCsvUrl !== undefined) updateData.savantCsvUrl = body.savantCsvUrl
   if (body.metricConfig !== undefined) updateData.metricConfig = body.metricConfig
   if (body.startDate !== undefined) updateData.startDate = new Date(body.startDate)
@@ -86,6 +87,7 @@ export async function PATCH(
   if (body.draftCloseAt !== undefined) updateData.draftCloseAt = new Date(body.draftCloseAt)
   if (body.cascadeWindowMinutes !== undefined) updateData.cascadeWindowMinutes = Number(body.cascadeWindowMinutes)
   if (body.status !== undefined) updateData.status = body.status
+  if (body.hidden !== undefined) updateData.hidden = body.hidden
   if (body.sweepstakesPhoto !== undefined) updateData.sweepstakesPhoto = body.sweepstakesPhoto
 
   const draftOpenAtChanged = body.draftOpenAt !== undefined
