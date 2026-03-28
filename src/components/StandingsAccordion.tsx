@@ -12,6 +12,37 @@ function formatValue(v: number) {
   return v % 1 === 0 ? String(v) : v.toFixed(2)
 }
 
+function computeTrend(
+  standings: StandingRow[],
+  contestDates: string[]
+): Map<string, number | null> {
+  if (contestDates.length < 2) return new Map(standings.map((s) => [s.id, null]))
+
+  const prevDate = contestDates[contestDates.length - 2]
+  const withPrev = standings
+    .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? null }))
+    .filter((x): x is { id: string; prevVal: number } => x.prevVal != null)
+    .sort((a, b) => b.prevVal - a.prevVal)
+
+  const prevRankMap = new Map<string, number>()
+  withPrev.forEach((x, i) => {
+    const prevRank =
+      i === 0 ? 1
+      : withPrev[i].prevVal === withPrev[i - 1].prevVal
+      ? prevRankMap.get(withPrev[i - 1].id)!
+      : i + 1
+    prevRankMap.set(x.id, prevRank)
+  })
+
+  return new Map(
+    standings.map((s) => {
+      const prevRank = prevRankMap.get(s.id)
+      if (prevRank == null || s.rank == null) return [s.id, null]
+      return [s.id, prevRank - s.rank]
+    })
+  )
+}
+
 function buildRankLabels(standings: StandingRow[]): Map<string, string> {
   const freq = new Map<number, number>()
   for (const s of standings) {
@@ -39,6 +70,7 @@ export default function StandingsAccordion({
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const rankLabels = buildRankLabels(standings)
+  const trendMap = computeTrend(standings, contestDates)
   const today = new Date().toLocaleDateString('en-CA')
 
   if (standings.length === 0) {
@@ -64,9 +96,19 @@ export default function StandingsAccordion({
               onClick={() => setOpenId(isOpen ? null : s.id)}
               className="w-full p-4 text-left space-y-3"
             >
-              {/* Top pill: rank · icon · name */}
+              {/* Top pill: rank · trend · icon · name */}
               <div className="inline-flex items-center gap-2 bg-[#1a1a1a] rounded-full px-3 py-1.5">
                 <span className="text-xs font-bold text-zinc-500 tabular-nums">{rankLabels.get(s.id)}</span>
+                {(() => {
+                  const trend = trendMap.get(s.id) ?? null
+                  if (trend == null) return null
+                  if (trend === 0) return <span className="text-[10px] text-zinc-600">—</span>
+                  return (
+                    <span className={`text-[10px] font-medium ${trend > 0 ? 'text-green-400' : 'text-rose-400'}`}>
+                      {trend > 0 ? `↑${trend}` : `↓${Math.abs(trend)}`}
+                    </span>
+                  )
+                })()}
                 <span className="text-sm leading-none">{s.managerIcon}</span>
                 <span className="text-sm font-medium text-zinc-100">{s.managerUsername}</span>
               </div>
