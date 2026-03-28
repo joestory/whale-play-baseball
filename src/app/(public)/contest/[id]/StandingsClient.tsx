@@ -42,8 +42,7 @@ function computeTrend(
 
   const prevDate = contestDates[contestDates.length - 2]
   const withPrev = standings
-    .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? null }))
-    .filter((x): x is { id: string; prevVal: number } => x.prevVal != null)
+    .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? 0 }))
     .sort((a, b) => b.prevVal - a.prevVal)
 
   const prevRankMap = new Map<string, number>()
