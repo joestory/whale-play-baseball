@@ -83,9 +83,10 @@ export default async function Image() {
   const top3 = pickedStandings.slice(0, 3)
   const prevRankMap = buildPrevRankMap(pickedStandings)
 
+  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
   const endMs = contest != null ? new Date(contest.endDate).getTime() : NaN
   const daysRemaining = isFinite(endMs)
-    ? Math.ceil((endMs - Date.now()) / 86400000)
+    ? Math.round((endMs - new Date(todayEastern).getTime()) / 86400000) + 1
     : null
   const showDays = daysRemaining != null && daysRemaining > 0
 
