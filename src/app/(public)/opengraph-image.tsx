@@ -175,7 +175,7 @@ export default async function Image() {
                         {formatValue(s.metricValue)}
                       </span>
                       {trendCaret != null ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                           <span style={{ color: trendColor, fontSize: 36, fontWeight: 900, lineHeight: 1 }}>
                             {trendCaret}
                           </span>
