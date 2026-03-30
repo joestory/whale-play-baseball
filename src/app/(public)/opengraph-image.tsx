@@ -115,7 +115,7 @@ export default async function Image() {
         {/* Days remaining */}
         {showDays && (
           <div style={{ color: daysColor(daysRemaining!), fontSize: 34, fontWeight: 500, marginBottom: 36 }}>
-            {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining
+            {`${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining`}
           </div>
         )}
 
