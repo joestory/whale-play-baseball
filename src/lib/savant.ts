@@ -4,6 +4,7 @@ import {
   aggregateByTeam,
   aggregateByTeamAndDate,
   aggregateRelatedByTeam,
+  aggregateOpponentsByTeamAndDate,
   computeRanks,
   parseMetricConfig,
 } from './metrics'
@@ -111,6 +112,7 @@ export async function pollContest(
   const teamTotals = aggregateByTeam(rows, config)
   const teamDaily = aggregateByTeamAndDate(rows, config)
   const teamRelated = aggregateRelatedByTeam(rows, config)
+  const teamOpponents = aggregateOpponentsByTeamAndDate(rows, config)
 
   const managerValues = new Map<string, number>()
   for (const pick of contest.picks) {
@@ -130,6 +132,7 @@ export async function pollContest(
         rank: ranks.get(pick.managerId) ?? null,
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
+        dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
       },
       update: {
         teamCode: pick.teamCode,
@@ -137,6 +140,7 @@ export async function pollContest(
         rank: ranks.get(pick.managerId) ?? null,
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
+        dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
       },
     })
   )

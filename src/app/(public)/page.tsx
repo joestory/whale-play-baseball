@@ -67,7 +67,7 @@ async function getContestData() {
 }
 
 function buildStandingRows(
-  contest: { standings: { id: string; managerId: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
+  contest: { standings: { id: string; managerId: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; dailyOpponents?: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
   contestDates: string[]
 ): StandingRow[] {
   const dateSet = new Set(contestDates)
@@ -75,6 +75,7 @@ function buildStandingRows(
   return contest.standings.filter((s) => pickedManagerIds.has(s.managerId)).map((s) => {
     const team = getTeam(s.teamCode)
     const raw = (s.dailyValues ?? {}) as Record<string, number>
+    const rawOpponents = (s.dailyOpponents ?? {}) as Record<string, string>
     return {
       id: s.id,
       rank: s.rank,
@@ -86,6 +87,7 @@ function buildStandingRows(
       metricValue: s.metricValue,
       dailyValues: Object.fromEntries(Object.entries(raw).filter(([d]) => dateSet.has(d))),
       relatedValues: (s.relatedValues ?? {}) as Record<string, number>,
+      dailyOpponents: Object.fromEntries(Object.entries(rawOpponents).filter(([d]) => dateSet.has(d))),
     }
   })
 }

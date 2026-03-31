@@ -132,6 +132,38 @@ export function aggregateRelatedByTeam(
 }
 
 /**
+ * For each tracked team, determine the opposing team per game date.
+ * Requires home_team and away_team columns to exist in the CSV rows.
+ * Returns empty map if those columns are absent (logos are silently skipped).
+ * For doubleheaders, the first opponent found per date wins.
+ */
+export function aggregateOpponentsByTeamAndDate(
+  rows: Row[],
+  config: MetricConfig
+): Map<string, Record<string, string>> {
+  const sample = rows[0]
+  if (!sample || !('home_team' in sample) || !('away_team' in sample)) return new Map()
+  if (!config.dateColumn) return new Map()
+
+  const results = new Map<string, Record<string, string>>()
+  for (const row of rows) {
+    const trackedTeam = normalizeTeam(row[config.teamColumn] ?? '')
+    if (!trackedTeam) continue
+    const date = (row[config.dateColumn] ?? '').slice(0, 10)
+    if (!date) continue
+    const existing = results.get(trackedTeam)
+    if (existing && date in existing) continue // doubleheader: first wins
+    const homeTeam = normalizeTeam(row['home_team'] ?? '')
+    const awayTeam = normalizeTeam(row['away_team'] ?? '')
+    const opponent = trackedTeam === homeTeam ? awayTeam : homeTeam
+    if (!opponent) continue
+    if (!results.has(trackedTeam)) results.set(trackedTeam, {})
+    results.get(trackedTeam)![date] = opponent
+  }
+  return results
+}
+
+/**
  * Compute ranks from a map of managerId → metricValue.
  * Higher is better unless higherIsBetter is false.
  * Returns a map of managerId → rank (1-based).

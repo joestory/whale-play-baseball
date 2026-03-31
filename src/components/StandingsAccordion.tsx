@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { StandingRow } from '@/types'
+import { getTeam } from '@/lib/constants'
 
 
 function formatDate(d: string) {
@@ -147,6 +148,12 @@ export default function StandingsAccordion({
                       return (
                         <div key={d} className="flex items-center gap-2 py-0.5">
                           <span className={`text-xs w-14 flex-shrink-0 ${d === today ? 'text-yellow-400 font-semibold' : 'text-zinc-500'}`}>{formatDate(d)}</span>
+                          {(() => {
+                            const opp = s.dailyOpponents?.[d] ? getTeam(s.dailyOpponents[d]) : null
+                            return opp?.logo
+                              ? <img src={opp.logo} alt={opp.abbreviation} className="w-4 h-4 object-contain flex-shrink-0 opacity-70" />
+                              : <span className="w-4 h-4 flex-shrink-0" />
+                          })()}
                           <span className="flex-1" />
                           <span className="text-xs tabular-nums text-zinc-300 w-10 text-right">
                             {cumulative != null ? formatValue(cumulative) : '—'}

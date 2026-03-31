@@ -44,6 +44,7 @@ export type StandingRow = {
   metricValue: number
   dailyValues: Record<string, number>
   relatedValues: Record<string, number>
+  dailyOpponents?: Record<string, string>
 }
 
 export type TeamInfo = {

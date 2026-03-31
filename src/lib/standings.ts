@@ -27,6 +27,7 @@ type RawStanding = {
   metricValue: number
   dailyValues: unknown
   relatedValues: unknown
+  dailyOpponents?: unknown
   manager: { icon: string | null; username: string }
 }
 
@@ -38,6 +39,7 @@ export function toStandingRows(standings: RawStanding[], contestDates: string[])
   return standings.map((s) => {
     const team = getTeam(s.teamCode)
     const raw = (s.dailyValues ?? {}) as Record<string, number>
+    const rawOpponents = (s.dailyOpponents ?? {}) as Record<string, string>
     return {
       id: s.id,
       rank: s.rank,
@@ -49,6 +51,7 @@ export function toStandingRows(standings: RawStanding[], contestDates: string[])
       metricValue: s.metricValue,
       dailyValues: Object.fromEntries(Object.entries(raw).filter(([d]) => dateSet.has(d))),
       relatedValues: (s.relatedValues ?? {}) as Record<string, number>,
+      dailyOpponents: Object.fromEntries(Object.entries(rawOpponents).filter(([d]) => dateSet.has(d))),
     }
   })
 }
