@@ -133,8 +133,13 @@ export function aggregateRelatedByTeam(
 
 /**
  * For each tracked team, determine the opposing team per game date.
- * Requires home_team and away_team columns to exist in the CSV rows.
- * Returns empty map if those columns are absent (logos are silently skipped).
+ *
+ * Supports two CSV formats:
+ *  A) Per-pitch/event: has home_team + away_team columns (uses config.teamColumn)
+ *  B) Team-date aggregated (group_by=team-date): has player_name + game_pk;
+ *     opponents share the same game_pk
+ *
+ * Returns empty map if neither format is detected (logos silently skipped).
  * For doubleheaders, the first opponent found per date wins.
  */
 export function aggregateOpponentsByTeamAndDate(
@@ -142,25 +147,65 @@ export function aggregateOpponentsByTeamAndDate(
   config: MetricConfig
 ): Map<string, Record<string, string>> {
   const sample = rows[0]
-  if (!sample || !('home_team' in sample) || !('away_team' in sample)) return new Map()
-  if (!config.dateColumn) return new Map()
+  if (!sample || !config.dateColumn) return new Map()
 
-  const results = new Map<string, Record<string, string>>()
-  for (const row of rows) {
-    const trackedTeam = normalizeTeam(row[config.teamColumn] ?? '')
-    if (!trackedTeam) continue
-    const date = (row[config.dateColumn] ?? '').slice(0, 10)
-    if (!date) continue
-    const existing = results.get(trackedTeam)
-    if (existing && date in existing) continue // doubleheader: first wins
-    const homeTeam = normalizeTeam(row['home_team'] ?? '')
-    const awayTeam = normalizeTeam(row['away_team'] ?? '')
-    const opponent = trackedTeam === homeTeam ? awayTeam : homeTeam
-    if (!opponent) continue
-    if (!results.has(trackedTeam)) results.set(trackedTeam, {})
-    results.get(trackedTeam)![date] = opponent
+  // Path A: per-pitch CSV with home_team / away_team columns
+  if ('home_team' in sample && 'away_team' in sample) {
+    const results = new Map<string, Record<string, string>>()
+    for (const row of rows) {
+      const trackedTeam = normalizeTeam(row[config.teamColumn] ?? '')
+      if (!trackedTeam) continue
+      const date = (row[config.dateColumn] ?? '').slice(0, 10)
+      if (!date) continue
+      const existing = results.get(trackedTeam)
+      if (existing && date in existing) continue // doubleheader: first wins
+      const homeTeam = normalizeTeam(row['home_team'] ?? '')
+      const awayTeam = normalizeTeam(row['away_team'] ?? '')
+      const opponent = trackedTeam === homeTeam ? awayTeam : homeTeam
+      if (!opponent) continue
+      if (!results.has(trackedTeam)) results.set(trackedTeam, {})
+      results.get(trackedTeam)![date] = opponent
+    }
+    return results
   }
-  return results
+
+  // Path B: team-date aggregated CSV (group_by=team-date)
+  // Team code is in player_name; two rows sharing game_pk are opponents
+  if ('player_name' in sample && 'game_pk' in sample) {
+    const gamePkTeams = new Map<string, string[]>()
+    const teamDateGame = new Map<string, string>() // `${teamCode}|${date}` → game_pk
+
+    for (const row of rows) {
+      const teamCode = normalizeTeam(row['player_name'] ?? '')
+      if (!teamCode) continue
+      const date = (row[config.dateColumn] ?? '').slice(0, 10)
+      if (!date) continue
+      const gamePk = row['game_pk'] ?? ''
+      if (!gamePk) continue
+
+      const key = `${teamCode}|${date}`
+      if (teamDateGame.has(key)) continue // doubleheader: first wins
+      teamDateGame.set(key, gamePk)
+
+      if (!gamePkTeams.has(gamePk)) gamePkTeams.set(gamePk, [])
+      const teams = gamePkTeams.get(gamePk)!
+      if (!teams.includes(teamCode)) teams.push(teamCode)
+    }
+
+    const results = new Map<string, Record<string, string>>()
+    for (const [key, gamePk] of teamDateGame) {
+      const pipeIdx = key.indexOf('|')
+      const teamCode = key.slice(0, pipeIdx)
+      const date = key.slice(pipeIdx + 1)
+      const opponent = (gamePkTeams.get(gamePk) ?? []).find(t => t !== teamCode)
+      if (!opponent) continue
+      if (!results.has(teamCode)) results.set(teamCode, {})
+      results.get(teamCode)![date] = opponent
+    }
+    return results
+  }
+
+  return new Map()
 }
 
 /**
