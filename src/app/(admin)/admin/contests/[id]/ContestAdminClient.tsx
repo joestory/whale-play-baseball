@@ -131,6 +131,7 @@ export default function ContestAdminClient({
   const [columnFetchStatus, setColumnFetchStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
   const [hidden, setHidden] = useState(contest.hidden)
+  const [contestStatus, setContestStatus] = useState(contest.status)
   const [togglingHidden, setTogglingHidden] = useState(false)
   const [sweepstakesPhoto, setSweepstakesPhoto] = useState<string | null>(contest.sweepstakesPhoto)
   const [photoFileName, setPhotoFileName] = useState<string | null>(null)
@@ -241,6 +242,8 @@ export default function ContestAdminClient({
         body: JSON.stringify({ ...form, draftOpenAt, draftCloseAt, metricConfig, sweepstakesPhoto }),
       })
       if (res.ok) {
+        const updated = await res.json()
+        setContestStatus(updated.status)
         setEditSuccess(true)
         router.refresh()
       } else {
@@ -462,8 +465,8 @@ export default function ContestAdminClient({
       <form onSubmit={handleSaveEdit} className={`${card} p-4 space-y-4`}>
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Contest Details</h2>
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[contest.status] ?? ''}`}>
-            {contest.status}
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[contestStatus] ?? ''}`}>
+            {contestStatus}
           </span>
         </div>
 
