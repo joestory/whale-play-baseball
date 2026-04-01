@@ -2,6 +2,16 @@
 
 All notable changes to Whale Play Baseball will be documented in this file.
 
+## [0.2.2] - 2026-03-31
+
+### Added
+- Opposing team logos in standings accordion per-date rows, with fallback to MLB Stats API for opponents absent from team-date CSVs
+- Support for group_by=team-date CSV format when detecting opponents (uses game_pk matching)
+
+### Fixed
+- Standings accordion delta column now correctly shows the increment from the last game date when off-days fall between game dates, instead of showing the full running cumulative
+- Athletics team code updated from OAK to ATH (Sacramento), with legacy OAK alias preserved for Savant CSV normalization
+
 ## [0.2.1] - 2026-03-30
 
 ### Changed
