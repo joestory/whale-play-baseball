@@ -2,6 +2,12 @@
 
 All notable changes to Whale Play Baseball will be documented in this file.
 
+## [0.2.3] - 2026-04-01
+
+### Fixed
+- Contest status no longer transitions to COMPLETED on the end date itself — it waits until the following day (Eastern time), matching the days-remaining display logic and ensuring the final Baseball Savant poll is inclusive of the end date
+- Admin contest date edits now automatically recompute and update contest status to reflect the new lifecycle position (including reverting from COMPLETED back to ACTIVE when an end date is extended)
+
 ## [0.2.2] - 2026-03-31
 
 ### Added

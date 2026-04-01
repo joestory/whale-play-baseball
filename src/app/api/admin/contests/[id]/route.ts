@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { autoSetDraftOrderFromPriorStandings } from '@/lib/draft'
+import { deriveContestStatus } from '@/lib/savant'
 
 async function requireAdmin() {
   const session = await auth()
@@ -91,9 +92,32 @@ export async function PATCH(
   if (body.sweepstakesPhoto !== undefined) updateData.sweepstakesPhoto = body.sweepstakesPhoto
 
   const draftOpenAtChanged = body.draftOpenAt !== undefined
+  const datesChanged =
+    body.startDate !== undefined ||
+    body.endDate !== undefined ||
+    body.draftOpenAt !== undefined ||
+    body.draftCloseAt !== undefined
 
   try {
     const contest = await prisma.contest.update({ where: { id }, data: updateData })
+
+    if (datesChanged && body.status === undefined) {
+      // Recompute status from the updated dates so it always reflects the current
+      // position in the contest lifecycle (including the day-after rule for COMPLETED).
+      const derivedStatus = deriveContestStatus({
+        draftOpenAt: contest.draftOpenAt,
+        draftCloseAt: contest.draftCloseAt,
+        endDate: contest.endDate,
+      })
+      if (derivedStatus !== contest.status) {
+        await prisma.contest.update({
+          where: { id },
+          data: { status: derivedStatus },
+        })
+        contest.status = derivedStatus
+      }
+    }
+
     if (draftOpenAtChanged) {
       await autoSetDraftOrderFromPriorStandings(id)
     }

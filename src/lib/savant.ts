@@ -171,8 +171,32 @@ export async function pollContest(
   }
 }
 
+// Returns the start of today in Eastern time as a UTC Date, for date-boundary comparisons.
+// Matches the logic in computeDaysRemaining on the client: contests are not COMPLETED
+// until the day *after* endDate, so the final polling run can include the end date.
+function startOfTodayEastern(): Date {
+  const easternDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  return new Date(easternDateStr)
+}
+
+// Derive the correct ContestStatus purely from date fields and the current time.
+// Uses Eastern-timezone day boundaries for the COMPLETED transition.
+export function deriveContestStatus(
+  contest: { draftOpenAt: Date; draftCloseAt: Date; endDate: Date },
+  now = new Date(),
+): 'UPCOMING' | 'DRAFTING' | 'ACTIVE' | 'COMPLETED' {
+  const todayEastern = startOfTodayEastern()
+  if (now < contest.draftOpenAt) return 'UPCOMING'
+  if (now < contest.draftCloseAt) return 'DRAFTING'
+  if (contest.endDate < todayEastern) return 'COMPLETED'
+  return 'ACTIVE'
+}
+
 export async function checkContestStatuses(): Promise<void> {
   const now = new Date()
+  // Start of today in Eastern time — status does not advance to COMPLETED until the day
+  // after endDate, so the final Savant poll is inclusive of the end date.
+  const todayEastern = startOfTodayEastern()
 
   await prisma.contest.updateMany({
     where: { status: 'UPCOMING', draftOpenAt: { lte: now } },
@@ -185,7 +209,7 @@ export async function checkContestStatuses(): Promise<void> {
   })
 
   await prisma.contest.updateMany({
-    where: { status: 'ACTIVE', endDate: { lte: now } },
+    where: { status: 'ACTIVE', endDate: { lt: todayEastern } },
     data: { status: 'COMPLETED' },
   })
 
