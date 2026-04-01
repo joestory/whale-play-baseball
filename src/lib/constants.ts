@@ -24,7 +24,7 @@ export const MLB_TEAMS: TeamInfo[] = [
   { code: 'MIN', name: 'Minnesota Twins',        city: 'Minnesota',     abbreviation: 'MIN', logo: 'https://www.mlbstatic.com/team-logos/142.svg', primaryColor: '#002B5C' },
   { code: 'NYM', name: 'New York Mets',          city: 'New York',      abbreviation: 'NYM', logo: 'https://www.mlbstatic.com/team-logos/121.svg', primaryColor: '#002D72' },
   { code: 'NYY', name: 'New York Yankees',       city: 'New York',      abbreviation: 'NYY', logo: 'https://www.mlbstatic.com/team-logos/147.svg', primaryColor: '#003087' },
-  { code: 'OAK', name: 'Athletics',             city: 'Oakland',       abbreviation: 'OAK', logo: 'https://www.mlbstatic.com/team-logos/133.svg', primaryColor: '#003831' },
+  { code: 'ATH', name: 'Athletics',             city: 'Sacramento',    abbreviation: 'ATH', logo: 'https://www.mlbstatic.com/team-logos/133.svg', primaryColor: '#003831' },
   { code: 'PHI', name: 'Philadelphia Phillies',  city: 'Philadelphia',  abbreviation: 'PHI', logo: 'https://www.mlbstatic.com/team-logos/143.svg', primaryColor: '#E81828' },
   { code: 'PIT', name: 'Pittsburgh Pirates',     city: 'Pittsburgh',    abbreviation: 'PIT', logo: 'https://www.mlbstatic.com/team-logos/134.svg', primaryColor: '#27251F' },
   { code: 'SD',  name: 'San Diego Padres',       city: 'San Diego',     abbreviation: 'SD',  logo: 'https://www.mlbstatic.com/team-logos/135.svg', primaryColor: '#2F241D' },
@@ -59,7 +59,8 @@ export const SAVANT_TEAM_MAP: Record<string, string> = {
   MIN: 'MIN',
   NYM: 'NYM',
   NYY: 'NYY',
-  OAK: 'OAK',
+  OAK: 'ATH', // legacy Oakland abbreviation
+  ATH: 'ATH',
   PHI: 'PHI',
   PIT: 'PIT',
   SD:  'SD',

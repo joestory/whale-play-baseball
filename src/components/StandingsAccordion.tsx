@@ -139,8 +139,12 @@ export default function StandingsAccordion({
                   ) : (
                     contestDates.map((d, i) => {
                       const cumulative = s.dailyValues[d]
-                      const prevDate = i > 0 ? contestDates[i - 1] : null
-                      const prevCumulative = prevDate != null ? s.dailyValues[prevDate] : undefined
+                      // Find the most recent prior date that has data (skipping off-days)
+                      let prevCumulative: number | undefined = undefined
+                      for (let j = i - 1; j >= 0; j--) {
+                        const v = s.dailyValues[contestDates[j]]
+                        if (v != null) { prevCumulative = v; break }
+                      }
                       const delta = cumulative != null
                         ? (prevCumulative != null ? cumulative - prevCumulative : cumulative)
                         : null
