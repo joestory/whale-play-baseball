@@ -112,7 +112,7 @@ export async function pollContest(
   const teamTotals = aggregateByTeam(rows, config)
   const teamDaily = aggregateByTeamAndDate(rows, config)
   const teamRelated = aggregateRelatedByTeam(rows, config)
-  const teamOpponents = aggregateOpponentsByTeamAndDate(rows, config)
+  const teamOpponents = await aggregateOpponentsByTeamAndDate(rows, config)
 
   const managerValues = new Map<string, number>()
   for (const pick of contest.picks) {

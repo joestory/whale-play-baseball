@@ -1,5 +1,5 @@
 import type { MetricAggregationStep, MetricConfig, RelatedMetric } from '@/types'
-import { normalizeTeam } from './constants'
+import { normalizeTeam, MLB_TEAMS } from './constants'
 
 type Row = Record<string, string>
 
@@ -142,10 +142,10 @@ export function aggregateRelatedByTeam(
  * Returns empty map if neither format is detected (logos silently skipped).
  * For doubleheaders, the first opponent found per date wins.
  */
-export function aggregateOpponentsByTeamAndDate(
+export async function aggregateOpponentsByTeamAndDate(
   rows: Row[],
   config: MetricConfig
-): Map<string, Record<string, string>> {
+): Promise<Map<string, Record<string, string>>> {
   const sample = rows[0]
   if (!sample || !config.dateColumn) return new Map()
 
@@ -170,7 +170,9 @@ export function aggregateOpponentsByTeamAndDate(
   }
 
   // Path B: team-date aggregated CSV (group_by=team-date)
-  // Team code is in player_name; two rows sharing game_pk are opponents
+  // Team code is in player_name; two rows sharing game_pk are opponents.
+  // When a team had 0 events (e.g. 0 HRs), they don't appear in the CSV —
+  // fall back to the MLB Stats API to resolve missing opponents.
   if ('player_name' in sample && 'game_pk' in sample) {
     const gamePkTeams = new Map<string, string[]>()
     const teamDateGame = new Map<string, string>() // `${teamCode}|${date}` → game_pk
@@ -184,12 +186,49 @@ export function aggregateOpponentsByTeamAndDate(
       if (!gamePk) continue
 
       const key = `${teamCode}|${date}`
-      if (teamDateGame.has(key)) continue // doubleheader: first wins
-      teamDateGame.set(key, gamePk)
+      if (!teamDateGame.has(key)) teamDateGame.set(key, gamePk)
 
       if (!gamePkTeams.has(gamePk)) gamePkTeams.set(gamePk, [])
       const teams = gamePkTeams.get(gamePk)!
       if (!teams.includes(teamCode)) teams.push(teamCode)
+    }
+
+    // For game_pks where only one team appeared, the opponent had 0 events
+    // and is absent from the CSV. Look them up via the MLB Stats API.
+    const incompleteGamePks = [...gamePkTeams.keys()].filter(
+      pk => (gamePkTeams.get(pk)?.length ?? 0) < 2
+    )
+
+    if (incompleteGamePks.length > 0) {
+      try {
+        // Build mlbId → teamCode map from logo URLs (e.g. .../team-logos/147.svg → NYY)
+        const mlbIdToCode = new Map<number, string>()
+        for (const team of MLB_TEAMS) {
+          const m = team.logo.match(/\/(\d+)\.svg$/)
+          if (m) mlbIdToCode.set(parseInt(m[1]), team.code)
+        }
+
+        const url = `https://statsapi.mlb.com/api/v1/schedule?gamePks=${incompleteGamePks.join(',')}`
+        const res = await fetch(url, { headers: { 'User-Agent': 'WhalePlayBaseball/1.0' } })
+        if (res.ok) {
+          const data = await res.json() as {
+            dates?: { games?: { gamePk: number; teams: { home: { team: { id: number } }; away: { team: { id: number } } } }[] }[]
+          }
+          for (const dateEntry of data.dates ?? []) {
+            for (const game of dateEntry.games ?? []) {
+              const pk = String(game.gamePk)
+              const homeCode = mlbIdToCode.get(game.teams.home.team.id)
+              const awayCode = mlbIdToCode.get(game.teams.away.team.id)
+              if (!homeCode || !awayCode || !gamePkTeams.has(pk)) continue
+              const teams = gamePkTeams.get(pk)!
+              if (!teams.includes(homeCode)) teams.push(homeCode)
+              if (!teams.includes(awayCode)) teams.push(awayCode)
+            }
+          }
+        }
+      } catch {
+        // Gracefully degrade — partial opponents still show for games where both teams had events
+      }
     }
 
     const results = new Map<string, Record<string, string>>()
