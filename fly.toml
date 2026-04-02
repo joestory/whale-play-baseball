@@ -25,4 +25,4 @@ primary_region = "sjc"
   memory = "512mb"
 
 [deploy]
-  release_command = "node node_modules/prisma/build/index.js db push --accept-data-loss"
+  release_command = "node node_modules/prisma/build/index.js db push --accept-data-loss && npx prisma db execute --file prisma/enable-rls.sql"
