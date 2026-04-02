@@ -7,19 +7,25 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const [contest, standings] = await Promise.all([
-    prisma.contest.findUnique({ where: { id }, select: { lastPolledAt: true } }),
-    prisma.standing.findMany({
-      where: { contestId: id },
-      orderBy: { rank: 'asc' },
-      include: {
-        manager: { select: { id: true, username: true, icon: true } },
-      },
-    }),
-  ])
+  const contest = await prisma.contest.findUnique({
+    where: { id },
+    select: { lastPolledAt: true, hidden: true },
+  })
+
+  if (!contest || contest.hidden) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const standings = await prisma.standing.findMany({
+    where: { contestId: id },
+    orderBy: { rank: 'asc' },
+    include: {
+      manager: { select: { id: true, username: true, icon: true } },
+    },
+  })
 
   return NextResponse.json({
     standings,
-    lastPolledAt: contest?.lastPolledAt?.toISOString() ?? null,
+    lastPolledAt: contest.lastPolledAt?.toISOString() ?? null,
   })
 }

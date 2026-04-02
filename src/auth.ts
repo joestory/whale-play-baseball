@@ -14,20 +14,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const username = credentials?.username as string | undefined
           const password = credentials?.password as string | undefined
-          console.log('[auth] authorize called, username:', username)
-          if (!username || !password) { console.log('[auth] missing credentials'); return null }
+          if (!username || !password) return null
 
           const manager = await prisma.manager.findUnique({ where: { username } })
-          console.log('[auth] manager found:', !!manager)
           if (!manager) return null
 
           const valid = await bcrypt.compare(password, manager.passwordHash)
-          console.log('[auth] password valid:', valid)
           if (!valid) return null
 
           return { id: manager.id, name: manager.username, isAdmin: manager.isAdmin }
         } catch (err) {
-          console.error('[auth] authorize error:', err)
+          console.error('[auth] authorize error')
           return null
         }
       },

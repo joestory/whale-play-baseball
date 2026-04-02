@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   const contests = await prisma.contest.findMany({
+    where: { hidden: false },
     orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
     select: {
       id: true,

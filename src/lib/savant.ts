@@ -46,13 +46,21 @@ export async function fetchCsvHeaders(url: string): Promise<string[]> {
 }
 
 export async function fetchCsv(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'WhalePlayBaseball/1.0' },
-  })
-  if (!res.ok) {
-    throw new Error(`Failed to fetch CSV: ${res.status} ${res.statusText}`)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000) // 30s timeout
+
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'WhalePlayBaseball/1.0' },
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      throw new Error(`Failed to fetch CSV: ${res.status} ${res.statusText}`)
+    }
+    return await res.text()
+  } finally {
+    clearTimeout(timeout)
   }
-  return res.text()
 }
 
 export function parseCsv(csvText: string): CsvRow[] {

@@ -7,6 +7,14 @@ export async function GET(
 ) {
   const { id } = await params
 
+  const contest = await prisma.contest.findUnique({
+    where: { id },
+    select: { hidden: true },
+  })
+  if (!contest || contest.hidden) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const [slots, picks] = await Promise.all([
     prisma.draftSlot.findMany({
       where: { contestId: id },

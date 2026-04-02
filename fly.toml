@@ -11,14 +11,20 @@ primary_region = "sjc"
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
+  # Cap at 1 machine — this is a small league app, not a public service.
+  max_machines_running = 1
 
   [http_service.concurrency]
     type = "requests"
-    soft_limit = 50
-    hard_limit = 80
+    # Lowered from 50/80 to reduce blast radius of traffic spikes.
+    soft_limit = 15
+    hard_limit = 25
+
+  [http_service.machine_checks]
+    grace_period = "10s"
 
 [[vm]]
   size = "shared-cpu-1x"
