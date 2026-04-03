@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { autoSetDraftOrderFromPriorStandings } from '@/lib/draft'
-import { deriveContestStatus } from '@/lib/savant'
+import { deriveContestStatus, pollContest } from '@/lib/savant'
 
 async function requireAdmin() {
   const session = await auth()
@@ -116,6 +116,14 @@ export async function PATCH(
         })
         contest.status = derivedStatus
       }
+    }
+
+    // If contest dates changed, force a re-poll so standings, ranks, and
+    // daily values are recalculated against the updated date range.  This
+    // ensures the trend delta compares against fresh prior-date ranks
+    // instead of stale data from before the edit.
+    if (datesChanged) {
+      await pollContest(id, { force: true })
     }
 
     if (draftOpenAtChanged) {
