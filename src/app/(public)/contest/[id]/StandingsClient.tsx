@@ -36,14 +36,15 @@ function apiToRow(s: ApiStanding, dateSet: Set<string>): StandingRow {
 // Returns a map of standingId → rank delta (positive = moved up, negative = moved down, null = no prev data)
 function computeTrend(
   standings: StandingRow[],
-  contestDates: string[]
+  contestDates: string[],
+  higherIsBetter: boolean
 ): Map<string, number | null> {
   if (contestDates.length < 2) return new Map(standings.map((s) => [s.id, null]))
 
   const prevDate = contestDates[contestDates.length - 2]
   const withPrev = standings
     .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? 0 }))
-    .sort((a, b) => b.prevVal - a.prevVal)
+    .sort((a, b) => higherIsBetter ? b.prevVal - a.prevVal : a.prevVal - b.prevVal)
 
   const prevRankMap = new Map<string, number>()
   withPrev.forEach((x, i) => {
@@ -86,6 +87,7 @@ export default function StandingsClient({
   initialStandings,
   contestDates,
   contestEndDate,
+  higherIsBetter,
 }: {
   contestId: string
   contestStatus: string
@@ -94,6 +96,7 @@ export default function StandingsClient({
   initialStandings: StandingRow[]
   contestDates: string[]
   contestEndDate: string
+  higherIsBetter: boolean
 }) {
   const [standings, setStandings] = useState(initialStandings)
   const [lastPolledAt, setLastPolledAt] = useState(initialLastPolledAt)
@@ -122,7 +125,7 @@ export default function StandingsClient({
     return () => clearInterval(interval)
   }, [poll, contestStatus])
 
-  const trendMap = computeTrend(standings, contestDates)
+  const trendMap = computeTrend(standings, contestDates, higherIsBetter)
 
   // Build rank labels with T-prefix for ties (e.g. "T2" when multiple share rank 2)
   const rankFreq = new Map<number, number>()
