@@ -663,6 +663,29 @@ export default function ContestAdminClient({
             )
           })}
         </div>
+        {(() => {
+          const unorderedManagers = nonAdminManagers.filter((m) => !orderedIds.includes(m.id))
+          if (unorderedManagers.length === 0) return null
+          return (
+            <div className="flex items-center gap-2 pt-1">
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setOrderedIds((ids) => [...ids, e.target.value])
+                    e.target.value = ''
+                  }
+                }}
+                className="flex-1 rounded-lg border border-[#262626] bg-[#0a0a0a] px-2 py-1.5 text-xs text-zinc-100 focus:border-green-500 focus:outline-none transition-colors appearance-none"
+              >
+                <option value="">+ Add manager…</option>
+                {unorderedManagers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.username}</option>
+                ))}
+              </select>
+            </div>
+          )
+        })()}
         <div className="flex gap-2 pt-2">
           <button onClick={handleSetDraftOrderFromPrior} disabled={settingDraftOrder} className="flex-1 bg-[#1a1a1a] hover:bg-[#262626] border border-[#262626] text-zinc-300 font-medium py-2 rounded-lg text-sm transition-colors disabled:opacity-40">
             {settingDraftOrder ? 'Setting…' : 'Draft Order'}
