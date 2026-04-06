@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { Prisma } from '@/generated/prisma/client'
 
 /**
  * Create DraftSlot rows for a contest after the admin sets pick order.
@@ -21,6 +22,37 @@ export async function initializeDraftSlots(
   })
 
   await prisma.draftSlot.createMany({ data: slots })
+}
+
+/**
+ * After a pick is made, cascade-reset eligibleAt for all remaining unpicked slots.
+ * N+1 (immediately next) becomes eligible at pickTime.
+ * N+2 gets pickTime + 1×cascadeWindow, N+3 gets pickTime + 2×cascadeWindow, etc.
+ * Never pushes a slot further into the future than its current eligibleAt.
+ */
+export async function cascadeEligibilityAfterPick(
+  contestId: string,
+  pickedAt: Date,
+  db: Prisma.TransactionClient
+): Promise<void> {
+  const contest = await db.contest.findUniqueOrThrow({ where: { id: contestId } })
+
+  const remainingSlots = await db.draftSlot.findMany({
+    where: { contestId, pickedAt: null },
+    orderBy: { pickOrder: 'asc' },
+  })
+
+  const cascadeMs = contest.cascadeWindowMinutes * 60 * 1000
+
+  for (let i = 0; i < remainingSlots.length; i++) {
+    const newEligibleAt = new Date(pickedAt.getTime() + i * cascadeMs)
+    if (newEligibleAt < remainingSlots[i].eligibleAt) {
+      await db.draftSlot.update({
+        where: { id: remainingSlots[i].id },
+        data: { eligibleAt: newEligibleAt },
+      })
+    }
+  }
 }
 
 /**

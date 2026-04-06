@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { Prisma } from '@/generated/prisma/client'
+import { cascadeEligibilityAfterPick } from '@/lib/draft'
 
 export async function POST(
   req: NextRequest,
@@ -57,10 +58,15 @@ export async function POST(
       })
 
       // Mark the draft slot as picked
+      const pickedAt = new Date()
       await tx.draftSlot.update({
         where: { id: slot.id },
-        data: { pickedAt: new Date() },
+        data: { pickedAt },
       })
+
+      // Cascade eligibility: next slot opens immediately, subsequent slots
+      // get their countdowns reset relative to this pick time.
+      await cascadeEligibilityAfterPick(contestId, pickedAt, tx)
 
       // Create initial standing row with 0 value (poll will fill it in)
       await tx.standing.upsert({
