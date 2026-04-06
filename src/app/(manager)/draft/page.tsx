@@ -3,8 +3,16 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 export default async function DraftIndexPage() {
+  const now = new Date()
+
+  // Find any contest currently in its draft window (by time, not just DB status)
   const activeContest = await prisma.contest.findFirst({
-    where: { status: 'DRAFTING', hidden: false },
+    where: {
+      hidden: false,
+      status: { in: ['DRAFTING', 'UPCOMING'] },
+      draftOpenAt: { lte: now },
+      draftCloseAt: { gt: now },
+    },
     orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
   })
 
@@ -13,7 +21,7 @@ export default async function DraftIndexPage() {
   }
 
   const upcomingContest = await prisma.contest.findFirst({
-    where: { status: 'UPCOMING', hidden: false },
+    where: { status: 'UPCOMING', hidden: false, draftOpenAt: { gt: now } },
     orderBy: { draftOpenAt: 'asc' },
   })
 
