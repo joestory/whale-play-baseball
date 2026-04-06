@@ -25,7 +25,14 @@ export default async function DraftIndexPage() {
           <h2 className="font-semibold text-zinc-300">No draft open yet</h2>
           <p className="text-zinc-500 text-sm mt-2">
             Next draft opens{' '}
-            {new Date(upcomingContest.draftOpenAt).toLocaleString()}
+            {new Date(upcomingContest.draftOpenAt).toLocaleString('en-US', {
+              timeZone: 'America/Los_Angeles',
+              month: 'numeric',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              timeZoneName: 'short',
+            })}
           </p>
           <p className="text-zinc-600 text-sm">{upcomingContest.name}</p>
         </>
