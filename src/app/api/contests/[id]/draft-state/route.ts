@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params
 
   const [contest, slots, picks] = await Promise.all([
-    prisma.contest.findUnique({ where: { id }, select: { status: true } }),
+    prisma.contest.findUnique({ where: { id }, select: { status: true, draftOpenAt: true, draftCloseAt: true } }),
     prisma.draftSlot.findMany({
       where: { contestId: id },
       orderBy: { pickOrder: 'asc' },
@@ -25,9 +25,15 @@ export async function GET(
     .filter((s) => s.eligibleAt <= now && !s.pickedAt)
     .map((s) => s.managerId)
 
+  // Compute live status from the clock so the client doesn't depend on the cron having run.
+  let liveStatus = contest?.status ?? null
+  if (contest && liveStatus === 'UPCOMING' && now >= contest.draftOpenAt && now < contest.draftCloseAt) {
+    liveStatus = 'DRAFTING'
+  }
+
   return NextResponse.json({
     contestId: id,
-    status: contest?.status ?? null,
+    status: liveStatus,
     eligibleManagerIds,
     slots: slots.map((s) => ({
       managerId: s.managerId,

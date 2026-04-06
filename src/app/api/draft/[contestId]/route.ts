@@ -24,10 +24,17 @@ export async function POST(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Verify contest is in DRAFTING status
+      // Verify contest draft window is open based on time, not cached DB status.
+      // This lets managers pick even if the cron hasn't flipped the status yet.
       const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId } })
-      if (contest.status !== 'DRAFTING') {
+      const now = new Date()
+      const draftIsOpen = now >= contest.draftOpenAt && now < contest.draftCloseAt
+      if (!draftIsOpen) {
         throw new Error('Draft is not open')
+      }
+      // Opportunistically sync the DB status so the cron isn't the only mechanism.
+      if (contest.status === 'UPCOMING') {
+        await tx.contest.update({ where: { id: contestId }, data: { status: 'DRAFTING' } })
       }
 
       // Verify manager is eligible (has an open slot that has become eligible)
