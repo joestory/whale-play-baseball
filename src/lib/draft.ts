@@ -68,8 +68,8 @@ export async function autoSetDraftOrderFromPriorStandings(contestId: string): Pr
   if (contest.draftSlots.length > 0) return false
 
   const priorContest = await prisma.contest.findFirst({
-    where: { season: contest.season, weekNumber: { lt: contest.weekNumber } },
-    orderBy: { weekNumber: 'desc' },
+    where: { season: contest.season, contestNumber: { lt: contest.contestNumber } },
+    orderBy: { contestNumber: 'desc' },
     include: {
       standings: {
         orderBy: { rank: 'asc' },
@@ -86,7 +86,16 @@ export async function autoSetDraftOrderFromPriorStandings(contestId: string): Pr
 
   if (orderedManagerIds.length === 0) return false
 
-  await initializeDraftSlots(contestId, orderedManagerIds)
+  // Append any managers not in the prior standings (new managers)
+  const allManagers = await prisma.manager.findMany({
+    where: { isAdmin: false },
+    select: { id: true },
+  })
+  const inPrior = new Set(orderedManagerIds)
+  const extras = allManagers.filter((m) => !inPrior.has(m.id)).map((m) => m.id)
+  const fullOrder = [...orderedManagerIds, ...extras]
+
+  await initializeDraftSlots(contestId, fullOrder)
   return true
 }
 
