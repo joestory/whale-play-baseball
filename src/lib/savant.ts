@@ -119,7 +119,14 @@ export async function pollContest(
     managerValues.set(pick.managerId, teamTotals.get(pick.teamCode) ?? 0)
   }
 
-  const ranks = computeRanks(managerValues, config.higherIsBetter !== false)
+  // PDX has no Savant data and is always ranked last, regardless of metric direction
+  const pdxManagerId = contest.picks.find((p) => p.teamCode === 'PDX')?.managerId
+  const rankingValues = pdxManagerId
+    ? new Map([...managerValues].filter(([id]) => id !== pdxManagerId))
+    : managerValues
+
+  const ranks = computeRanks(rankingValues, config.higherIsBetter !== false)
+  if (pdxManagerId) ranks.set(pdxManagerId, contest.picks.length)
 
   const upserts = contest.picks.map((pick) =>
     prisma.standing.upsert({
@@ -202,6 +209,48 @@ export async function checkContestStatuses(): Promise<void> {
     where: { status: 'UPCOMING', draftOpenAt: { lte: now } },
     data: { status: 'DRAFTING' },
   })
+
+  // Before closing the draft window, auto-assign MLB2PDX to Heff if she hasn't picked
+  const closingDraftContests = await prisma.contest.findMany({
+    where: { status: 'DRAFTING', draftCloseAt: { lte: now } },
+    select: { id: true },
+  })
+  if (closingDraftContests.length > 0) {
+    const heff = await prisma.manager.findFirst({
+      where: { username: 'Heff' },
+      select: { id: true },
+    })
+    if (heff) {
+      await Promise.allSettled(
+        closingDraftContests.map(async ({ id: contestId }) => {
+          await prisma.$transaction(async (tx) => {
+            const slot = await tx.draftSlot.findUnique({
+              where: { contestId_managerId: { contestId, managerId: heff.id } },
+            })
+            if (!slot || slot.pickedAt) return
+
+            const pdxTaken = await tx.contestPick.findFirst({
+              where: { contestId, teamCode: 'PDX' },
+            })
+            if (pdxTaken) return
+
+            await tx.contestPick.create({
+              data: { contestId, managerId: heff.id, teamCode: 'PDX' },
+            })
+            await tx.draftSlot.update({
+              where: { id: slot.id },
+              data: { pickedAt: new Date() },
+            })
+            await tx.standing.upsert({
+              where: { contestId_managerId: { contestId, managerId: heff.id } },
+              create: { contestId, managerId: heff.id, teamCode: 'PDX', metricValue: 0 },
+              update: { teamCode: 'PDX', metricValue: 0 },
+            })
+          })
+        })
+      )
+    }
+  }
 
   await prisma.contest.updateMany({
     where: { status: 'DRAFTING', draftCloseAt: { lte: now } },
