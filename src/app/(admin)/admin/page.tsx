@@ -14,6 +14,8 @@ export default async function AdminDashboardPage() {
     COMPLETED: 'bg-zinc-800 text-zinc-500 border border-zinc-700',
   }
 
+  const now = new Date()
+
   return (
     <div className="space-y-4 pt-2">
       <div className="flex items-center justify-between">
@@ -27,7 +29,14 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="space-y-2">
-        {contests.map((c) => (
+        {contests.map((c) => {
+          const effectiveStatus = (() => {
+            if (c.status !== 'UPCOMING') return c.status
+            if (now >= c.draftOpenAt && now < c.draftCloseAt) return 'DRAFTING'
+            if (now >= c.draftCloseAt) return 'ACTIVE'
+            return 'UPCOMING'
+          })()
+          return (
           <Link
             key={c.id}
             href={`/admin/contests/${c.id}`}
@@ -36,11 +45,12 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="font-medium text-zinc-100">{c.name}</p>
             </div>
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[c.status]}`}>
-              {c.status}
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[effectiveStatus]}`}>
+              {effectiveStatus}
             </span>
           </Link>
-        ))}
+          )
+        })}
         {contests.length === 0 && (
           <p className="text-zinc-600 text-sm text-center py-6">
             No contests yet. Create your first one!
