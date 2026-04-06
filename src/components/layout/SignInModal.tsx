@@ -23,9 +23,6 @@ export default function SignInModal() {
       dialogRef.current?.showModal()
     } else {
       dialogRef.current?.close()
-      setError('')
-      setUsername('')
-      setPassword('')
     }
   }, [open])
 
@@ -63,7 +60,7 @@ export default function SignInModal() {
       {/* Native dialog for accessible modal */}
       <dialog
         ref={dialogRef}
-        onClose={() => setOpen(false)}
+        onClose={() => { setOpen(false); setError(''); setUsername(''); setPassword('') }}
         className="m-auto w-full max-w-xs rounded-2xl border border-[#1f1f1f] bg-[#111] p-6 text-[#fafafa] backdrop:bg-black/60"
       >
         <div>
