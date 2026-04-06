@@ -23,6 +23,7 @@ export function contestDatesUpToToday(startDate: Date, endDate: Date): string[] 
 type RawStanding = {
   id: string
   rank: number | null
+  previousRank: number | null
   teamCode: string
   metricValue: number
   dailyValues: unknown
@@ -43,6 +44,7 @@ export function toStandingRows(standings: RawStanding[], contestDates: string[])
     return {
       id: s.id,
       rank: s.rank,
+      previousRank: s.previousRank,
       managerIcon: s.manager.icon ?? '⚾',
       managerUsername: s.manager.username,
       teamCode: s.teamCode,

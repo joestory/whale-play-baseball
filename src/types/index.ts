@@ -36,6 +36,7 @@ export type DraftState = {
 export type StandingRow = {
   id: string
   rank: number | null
+  previousRank: number | null
   managerIcon: string
   managerUsername: string
   teamCode: string

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import { contestDatesUpToToday, toStandingRows } from '@/lib/standings'
-import { parseMetricConfig } from '@/lib/metrics'
 import StandingsClient from './StandingsClient'
 
 // ISR: revalidate every 5 minutes — standings update nightly so even 300s is fine
@@ -53,7 +52,6 @@ export default async function ContestPage({ params }: Props) {
   if (!contest) notFound()
 
   const contestDates = contestDatesUpToToday(contest.startDate, contest.endDate)
-  const metricConfig = parseMetricConfig(contest.metricConfig)
   const pickedManagerIds = new Set(contest.picks.map((p) => p.managerId))
   const initialStandings = toStandingRows(
     contest.standings.filter((s) => pickedManagerIds.has(s.managerId)),
@@ -114,7 +112,6 @@ export default async function ContestPage({ params }: Props) {
           initialStandings={initialStandings}
           contestDates={contestDates}
           contestEndDate={contest.endDate.toISOString().slice(0, 10)}
-          higherIsBetter={metricConfig.higherIsBetter !== false}
         />
 
         {/* Metric explainer — editorial story authored by the commissioner */}

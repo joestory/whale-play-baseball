@@ -67,7 +67,7 @@ async function getContestData() {
 }
 
 function buildStandingRows(
-  contest: { standings: { id: string; managerId: string; rank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; dailyOpponents?: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
+  contest: { standings: { id: string; managerId: string; rank: number | null; previousRank: number | null; teamCode: string; metricValue: number; dailyValues: unknown; relatedValues: unknown; dailyOpponents?: unknown; manager: { icon: string | null; username: string } }[]; picks: { managerId: string }[] },
   contestDates: string[]
 ): StandingRow[] {
   const dateSet = new Set(contestDates)
@@ -79,6 +79,7 @@ function buildStandingRows(
     return {
       id: s.id,
       rank: s.rank,
+      previousRank: s.previousRank,
       managerIcon: s.manager.icon ?? '⚾',
       managerUsername: s.manager.username,
       teamCode: s.teamCode,

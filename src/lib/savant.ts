@@ -85,7 +85,7 @@ export async function pollContest(
     where: { id: contestId },
     include: {
       picks: true,
-      standings: { select: { managerId: true, metricValue: true } },
+      standings: { select: { managerId: true, metricValue: true, rank: true } },
     },
   })
 
@@ -97,6 +97,7 @@ export async function pollContest(
   }
 
   const prevValues = new Map(contest.standings.map((s) => [s.managerId, s.metricValue]))
+  const prevRanks = new Map(contest.standings.map((s) => [s.managerId, s.rank]))
 
   const config = parseMetricConfig(contest.metricConfig)
   const csvText = await fetchCsv(contest.savantCsvUrl)
@@ -137,6 +138,7 @@ export async function pollContest(
         teamCode: pick.teamCode,
         metricValue: managerValues.get(pick.managerId) ?? 0,
         rank: ranks.get(pick.managerId) ?? null,
+        previousRank: prevRanks.get(pick.managerId) ?? null,
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
         dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
@@ -145,6 +147,7 @@ export async function pollContest(
         teamCode: pick.teamCode,
         metricValue: managerValues.get(pick.managerId) ?? 0,
         rank: ranks.get(pick.managerId) ?? null,
+        previousRank: prevRanks.get(pick.managerId) ?? null,
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
         dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},

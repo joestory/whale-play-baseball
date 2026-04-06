@@ -9,6 +9,7 @@ type ApiStanding = {
   teamCode: string
   metricValue: number
   rank: number | null
+  previousRank: number | null
   dailyValues: Record<string, number>
   relatedValues: Record<string, number>
   manager: { id: string; username: string; icon: string | null }
@@ -20,6 +21,7 @@ function apiToRow(s: ApiStanding, dateSet: Set<string>): StandingRow {
   return {
     id: s.id,
     rank: s.rank,
+    previousRank: s.previousRank,
     managerIcon: s.manager.icon ?? '⚾',
     managerUsername: s.manager.username,
     teamCode: s.teamCode,
@@ -33,47 +35,13 @@ function apiToRow(s: ApiStanding, dateSet: Set<string>): StandingRow {
 
 // ─── Trend ────────────────────────────────────────────────────────────────────
 
-// Returns a map of standingId → rank delta (positive = moved up, negative = moved down, null = no prev data)
-// Return the cumulative value for a standing on the given date.  dailyValues
-// only contains entries for dates the team actually played, so if `date` has
-// no entry we carry-forward the most recent prior value (cumulative totals
-// don't change on off-days).  Falls back to 0 only if there's no data at all.
-function valueAtDate(dv: Record<string, number>, date: string, contestDates: string[]): number {
-  if (dv[date] !== undefined) return dv[date]
-  // Walk backwards through contestDates for the most recent known value
-  for (let i = contestDates.indexOf(date) - 1; i >= 0; i--) {
-    if (dv[contestDates[i]] !== undefined) return dv[contestDates[i]]
-  }
-  return 0
-}
-
-function computeTrend(
-  standings: StandingRow[],
-  contestDates: string[],
-  higherIsBetter: boolean
-): Map<string, number | null> {
-  if (contestDates.length < 2) return new Map(standings.map((s) => [s.id, null]))
-
-  const prevDate = contestDates[contestDates.length - 2]
-  const withPrev = standings
-    .map((s) => ({ id: s.id, prevVal: valueAtDate(s.dailyValues, prevDate, contestDates) }))
-    .sort((a, b) => higherIsBetter ? b.prevVal - a.prevVal : a.prevVal - b.prevVal)
-
-  const prevRankMap = new Map<string, number>()
-  withPrev.forEach((x, i) => {
-    const prevRank =
-      i === 0 ? 1
-      : withPrev[i].prevVal === withPrev[i - 1].prevVal
-      ? prevRankMap.get(withPrev[i - 1].id)!
-      : i + 1
-    prevRankMap.set(x.id, prevRank)
-  })
-
+// Rank delta vs. the prior standings update.  Positive = moved up, negative = moved down.
+// Uses previousRank stored server-side during pollContest — no client-side re-ranking needed.
+function computeTrend(standings: StandingRow[]): Map<string, number | null> {
   return new Map(
     standings.map((s) => {
-      const prevRank = prevRankMap.get(s.id)
-      if (prevRank == null || s.rank == null) return [s.id, null]
-      return [s.id, prevRank - s.rank]
+      if (s.previousRank == null || s.rank == null) return [s.id, null]
+      return [s.id, s.previousRank - s.rank]
     })
   )
 }
@@ -100,7 +68,6 @@ export default function StandingsClient({
   initialStandings,
   contestDates,
   contestEndDate,
-  higherIsBetter,
 }: {
   contestId: string
   contestStatus: string
@@ -109,7 +76,6 @@ export default function StandingsClient({
   initialStandings: StandingRow[]
   contestDates: string[]
   contestEndDate: string
-  higherIsBetter: boolean
 }) {
   const [standings, setStandings] = useState(initialStandings)
   const [lastPolledAt, setLastPolledAt] = useState(initialLastPolledAt)
@@ -138,7 +104,7 @@ export default function StandingsClient({
     return () => clearInterval(interval)
   }, [poll, contestStatus])
 
-  const trendMap = computeTrend(standings, contestDates, higherIsBetter)
+  const trendMap = computeTrend(standings)
 
   // Build rank labels with T-prefix for ties (e.g. "T2" when multiple share rank 2)
   const rankFreq = new Map<number, number>()

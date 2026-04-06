@@ -47,6 +47,7 @@ describe('toStandingRows', () => {
     {
       id: 's1',
       rank: 1,
+      previousRank: null,
       teamCode: 'NYY',
       metricValue: 15,
       dailyValues: { '2026-03-20': 3, '2026-03-21': 8, '2026-03-25': 15 },
@@ -56,6 +57,7 @@ describe('toStandingRows', () => {
     {
       id: 's2',
       rank: 2,
+      previousRank: null,
       teamCode: 'BOS',
       metricValue: 10,
       dailyValues: { '2026-03-20': 2, '2026-03-21': 10 },
