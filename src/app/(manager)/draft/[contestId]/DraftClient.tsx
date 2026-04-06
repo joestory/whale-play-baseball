@@ -52,14 +52,17 @@ export default function DraftClient({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [pendingTeam, setPendingTeam] = useState<string | null>(null)
+  const [liveStatus, setLiveStatus] = useState(contest.status)
 
-  // Derive effective status from the clock — works even when DB status is stale
+  // Derive effective status purely from the clock — always authoritative regardless
+  // of what the DB says.  The DB status can lag behind (cron delay, stale cache).
   const effectiveStatus = (() => {
-    if (contest.status !== 'UPCOMING') return contest.status
     const open = new Date(contest.draftOpenAt)
     const close = new Date(contest.draftCloseAt)
-    if (now >= open && now < close) return 'DRAFTING'
-    return 'UPCOMING'
+    if (now < open) return 'UPCOMING'
+    if (now < close) return 'DRAFTING'
+    // Outside draft window — trust the live (polled) status
+    return liveStatus === 'UPCOMING' || liveStatus === 'DRAFTING' ? 'ACTIVE' : liveStatus
   })()
 
   // Update clock every second for eligibility and countdown display
@@ -76,6 +79,7 @@ export default function DraftClient({
       const data = await res.json()
       setSlots(data.slots)
       setPicks(data.picks)
+      if (data.status) setLiveStatus(data.status)
     } catch {
       // Silently ignore refresh failures
     }
@@ -108,9 +112,20 @@ export default function DraftClient({
   }, [contest.draftOpenAt, contest.draftCloseAt, refreshDraftState])
 
   const pickedTeams = new Set(picks.map((p) => p.teamCode))
-  const myCurrentSlot = mySlot
-    ? slots.find((s) => s.managerId === managerId) ?? null
-    : null
+  // Always look up the slot from the live (polled) slots — the initial mySlot
+  // prop can be stale if draft order was set after page load.
+  const myCurrentSlot = slots.find((s) => s.managerId === managerId) ?? null
+
+  // Sync myPick from polled picks so the UI stays correct if a pick is made
+  // from another session or cleared by an admin.
+  const myPickFromPolled = picks.find((p) => p.managerId === managerId)
+  useEffect(() => {
+    if (myPickFromPolled && !myPick) {
+      setMyPick({ teamCode: myPickFromPolled.teamCode })
+    } else if (!myPickFromPolled && myPick) {
+      setMyPick(null)
+    }
+  }, [myPickFromPolled?.teamCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEligible =
     myCurrentSlot &&
@@ -302,13 +317,13 @@ export default function DraftClient({
           </section>
         )}
 
-        {/* Show all teams with their status if not currently drafting */}
+        {/* Show all teams with their status when not eligible to pick */}
         {(!isEligible || myPick) && (
           <section>
             <h2 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-              Teams
+              {myPick ? 'Teams' : 'Available Teams'}
             </h2>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-5 gap-2 opacity-60">
               {MLB_TEAMS.map((team) => {
                 const pick = picks.find((p) => p.teamCode === team.code)
                 const isMyPick = pick?.managerId === managerId
@@ -317,10 +332,10 @@ export default function DraftClient({
                     key={team.code}
                     className={`flex flex-col items-center justify-center rounded-xl p-3 gap-1.5 ${
                       isMyPick
-                        ? 'bg-green-500/10 border border-green-500/30'
+                        ? 'bg-green-500/10 border border-green-500/30 !opacity-100'
                         : pick
                         ? 'bg-[#0a0a0a] border border-red-500/40'
-                        : 'bg-[#111111] border border-[#1f1f1f]'
+                        : 'bg-[#0d0d0d] border border-[#181818]'
                     }`}
                   >
                     <img
@@ -328,7 +343,7 @@ export default function DraftClient({
                       alt={team.name}
                       className={`w-8 h-8 object-contain ${pick && !isMyPick ? 'grayscale opacity-50' : ''}`}
                     />
-                    <span className={`text-[10px] font-bold ${isMyPick ? 'text-green-400' : pick ? 'text-red-900' : 'text-zinc-400'}`}>
+                    <span className={`text-[10px] font-bold ${isMyPick ? 'text-green-400' : pick ? 'text-red-900' : 'text-zinc-600'}`}>
                       {team.abbreviation}
                     </span>
                   </div>

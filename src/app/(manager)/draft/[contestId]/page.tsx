@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { notFound, redirect } from 'next/navigation'
 import DraftClient from './DraftClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DraftPage({
   params,
 }: {
