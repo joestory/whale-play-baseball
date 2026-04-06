@@ -208,12 +208,37 @@ export async function checkContestStatuses(): Promise<void> {
     data: { status: 'ACTIVE' },
   })
 
+  // Identify contests transitioning to COMPLETED so we can set draft order for their successors
+  const aboutToComplete = await prisma.contest.findMany({
+    where: { status: 'ACTIVE', endDate: { lt: todayEastern } },
+    select: { id: true, season: true, contestNumber: true },
+  })
+
   await prisma.contest.updateMany({
     where: { status: 'ACTIVE', endDate: { lt: todayEastern } },
     data: { status: 'COMPLETED' },
   })
 
-  // Auto-set draft order from prior standings for contests opening within 2 hours
+  // For each newly-completed contest, find the next contest in the same season and set its draft order
+  if (aboutToComplete.length > 0) {
+    const successors = await Promise.all(
+      aboutToComplete.map((c) =>
+        prisma.contest.findFirst({
+          where: {
+            season: c.season,
+            contestNumber: { gt: c.contestNumber },
+            status: { in: ['UPCOMING', 'DRAFTING'] },
+          },
+          orderBy: { contestNumber: 'asc' },
+          select: { id: true },
+        })
+      )
+    )
+    const successorIds = successors.flatMap((s) => (s ? [s.id] : []))
+    await Promise.allSettled(successorIds.map((id) => autoSetDraftOrderFromPriorStandings(id)))
+  }
+
+  // Also auto-set draft order from prior standings for contests opening within 2 hours (fallback)
   const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000)
   const upcomingDraftingSoon = await prisma.contest.findMany({
     where: { status: 'UPCOMING', draftOpenAt: { lte: twoHoursFromNow } },
