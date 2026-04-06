@@ -9,7 +9,7 @@ import MetricBuilderSection from '@/components/MetricBuilderSection'
 type ContestInfo = {
   id: string
   name: string
-  weekNumber: number
+  contestNumber: number
   season: number
   metricName: string
   metricDescription: string
@@ -142,7 +142,7 @@ export default function ContestAdminClient({
   const localDraft = utcStringToLocalParts(contest.draftOpenAt)
   const [form, setForm] = useState({
     name: contest.name,
-    weekNumber: String(contest.weekNumber),
+    contestNumber: String(contest.contestNumber),
     season: String(contest.season),
     metricName: contest.metricName,
     metricDescription: contest.metricDescription,
@@ -471,7 +471,7 @@ export default function ContestAdminClient({
         </div>
 
         <Field label="Contest #">
-          <input type="number" value={form.weekNumber} onChange={(e) => set('weekNumber', e.target.value)} className={inputClass} min={1} required />
+          <input type="number" value={form.contestNumber} onChange={(e) => set('contestNumber', e.target.value)} className={inputClass} min={1} required />
         </Field>
         <Field label="Season">
           <input type="number" value={form.season} onChange={(e) => set('season', e.target.value)} className={inputClass} required />

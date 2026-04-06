@@ -63,7 +63,7 @@ export function buildPrevRankMap(
 export default async function Image() {
   const contest = await prisma.contest.findFirst({
     where: { status: { in: ['ACTIVE', 'DRAFTING'] } },
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+    orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
     include: {
       standings: {
         orderBy: { rank: 'asc' },
@@ -74,7 +74,7 @@ export default async function Image() {
   })
 
   const title = contest
-    ? `${contest.name} — Contest ${contest.weekNumber}`
+    ? `${contest.name} — Contest ${contest.contestNumber}`
     : 'Whale Play Baseball'
   const metricName = contest?.metricName ?? 'Fantasy Baseball Weekly Draft League'
 

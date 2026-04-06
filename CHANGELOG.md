@@ -2,6 +2,17 @@
 
 All notable changes to Whale Play Baseball will be documented in this file.
 
+## [0.2.4] - 2026-04-05
+
+### Added
+- Draft order for a contest is now automatically set when the prior contest transitions to COMPLETED during a Savant poll, using the prior contest's final standings
+
+### Fixed
+- Managers not present in the prior contest's standings are now included at the end of the draft order when setting order from prior standings — all managers appear in every draft
+
+### Changed
+- Renamed `weekNumber` field to `contestNumber` throughout the codebase and database schema to align with the UI label
+
 ## [0.2.3] - 2026-04-01
 
 ### Fixed

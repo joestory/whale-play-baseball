@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export default async function AdminDashboardPage() {
   const contests = await prisma.contest.findMany({
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+    orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
     take: 20,
   })
 

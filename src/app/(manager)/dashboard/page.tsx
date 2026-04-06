@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   const [currentContest, picks, myStandings] = await Promise.all([
     prisma.contest.findFirst({
       where: { status: { in: ['DRAFTING', 'ACTIVE'] }, hidden: false },
-      orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+      orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
     }),
     prisma.contestPick.findMany({
       where: { managerId },
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
             id: true,
             name: true,
             metricName: true,
-            weekNumber: true,
+            contestNumber: true,
             season: true,
             status: true,
           },

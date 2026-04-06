@@ -37,10 +37,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `${contest.metricName} — standings update nightly`
 
   return {
-    title: `${contest.name} — Week ${contest.weekNumber} Standings`,
+    title: `${contest.name} — Week ${contest.contestNumber} Standings`,
     description,
     openGraph: {
-      title: `${contest.name} — Week ${contest.weekNumber} Standings`,
+      title: `${contest.name} — Week ${contest.contestNumber} Standings`,
       description,
       siteName: 'Whale Play Baseball',
     },

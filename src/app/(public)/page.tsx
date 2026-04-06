@@ -46,7 +46,7 @@ const contestInclude = {
 async function getContestData() {
   const active = await prisma.contest.findFirst({
     where: { status: { in: ['DRAFTING', 'ACTIVE'] }, hidden: false },
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+    orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
     include: contestInclude,
   })
   if (active) return { active, upcoming: null, completed: null }
@@ -54,12 +54,12 @@ async function getContestData() {
   const [upcoming, completed] = await Promise.all([
     prisma.contest.findFirst({
       where: { status: 'UPCOMING', hidden: false },
-      orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
-      select: { id: true, name: true, weekNumber: true, season: true, metricName: true, metricDescription: true, commissionerMessage: true, sweepstakesPhoto: true, draftOpenAt: true },
+      orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
+      select: { id: true, name: true, contestNumber: true, season: true, metricName: true, metricDescription: true, commissionerMessage: true, sweepstakesPhoto: true, draftOpenAt: true },
     }),
     prisma.contest.findFirst({
       where: { status: 'COMPLETED', hidden: false },
-      orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+      orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
       include: contestInclude,
     }),
   ])

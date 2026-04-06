@@ -30,7 +30,7 @@ model Manager {
 model Contest {
   id                   String        @id @default(cuid())
   name                 String
-  weekNumber           Int
+  contestNumber        Int
   season               Int
   metricName           String
   metricDescription    String?
@@ -54,7 +54,7 @@ model Contest {
   standings  Standing[]
   draftSlots DraftSlot[]
 
-  @@unique([season, weekNumber])
+  @@unique([season, contestNumber])
 }
 
 model ContestPick {

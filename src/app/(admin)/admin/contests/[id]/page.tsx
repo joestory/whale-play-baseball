@@ -37,7 +37,7 @@ export default async function AdminContestPage({
       contest={{
         id: contest.id,
         name: contest.name,
-        weekNumber: contest.weekNumber,
+        contestNumber: contest.contestNumber,
         season: contest.season,
         metricName: contest.metricName,
         metricDescription: contest.metricDescription ?? '',

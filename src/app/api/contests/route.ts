@@ -3,11 +3,11 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   const contests = await prisma.contest.findMany({
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+    orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
     select: {
       id: true,
       name: true,
-      weekNumber: true,
+      contestNumber: true,
       season: true,
       metricName: true,
       status: true,
