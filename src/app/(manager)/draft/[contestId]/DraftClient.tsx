@@ -53,13 +53,22 @@ export default function DraftClient({
   const [error, setError] = useState('')
   const [pendingTeam, setPendingTeam] = useState<string | null>(null)
 
+  // Derive effective status from the clock — works even when DB status is stale
+  const effectiveStatus = (() => {
+    if (contest.status !== 'UPCOMING') return contest.status
+    const open = new Date(contest.draftOpenAt)
+    const close = new Date(contest.draftCloseAt)
+    if (now >= open && now < close) return 'DRAFTING'
+    return 'UPCOMING'
+  })()
+
   // Update clock every second for eligibility and countdown display
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
 
-  // Poll draft state every 3 seconds — keeps all clients in sync quickly
+  // Poll draft state — starts immediately if in window, or waits until draftOpenAt
   const refreshDraftState = useCallback(async () => {
     try {
       const res = await fetch(`/api/contests/${contest.id}/draft-state`)
@@ -67,33 +76,25 @@ export default function DraftClient({
       const data = await res.json()
       setSlots(data.slots)
       setPicks(data.picks)
-      // If status flipped to DRAFTING while we were watching, reload to get server-rendered state
-      if (data.status === 'DRAFTING' && contest.status !== 'DRAFTING') {
-        window.location.reload()
-      }
     } catch {
       // Silently ignore refresh failures
     }
-  }, [contest.id, contest.status])
+  }, [contest.id])
 
   useEffect(() => {
-    if (contest.status !== 'DRAFTING') return
-    const t = setInterval(refreshDraftState, 3_000)
-    return () => clearInterval(t)
-  }, [contest.status, refreshDraftState])
+    const openMs = new Date(contest.draftOpenAt).getTime()
+    const closeMs = new Date(contest.draftCloseAt).getTime()
+    const nowMs = Date.now()
+    if (nowMs >= closeMs) return
 
-  // When UPCOMING and past draftOpenAt, poll until status becomes DRAFTING
-  useEffect(() => {
-    if (contest.status !== 'UPCOMING') return
-    const openAt = new Date(contest.draftOpenAt).getTime()
     let intervalId: ReturnType<typeof setInterval>
+    let timeoutId: ReturnType<typeof setTimeout>
 
     function startPolling() {
-      intervalId = setInterval(refreshDraftState, 5_000)
+      intervalId = setInterval(refreshDraftState, 3_000)
     }
 
-    const msUntilOpen = openAt - Date.now()
-    let timeoutId: ReturnType<typeof setTimeout>
+    const msUntilOpen = openMs - nowMs
     if (msUntilOpen <= 0) {
       startPolling()
     } else {
@@ -104,7 +105,7 @@ export default function DraftClient({
       clearTimeout(timeoutId)
       clearInterval(intervalId)
     }
-  }, [contest.status, contest.draftOpenAt, refreshDraftState])
+  }, [contest.draftOpenAt, contest.draftCloseAt, refreshDraftState])
 
   const pickedTeams = new Set(picks.map((p) => p.teamCode))
   const myCurrentSlot = mySlot
@@ -148,14 +149,14 @@ export default function DraftClient({
     (s) => !s.pickedAt && new Date(s.eligibleAt) <= now
   )
 
-  if (contest.status !== 'DRAFTING') {
+  if (effectiveStatus !== 'DRAFTING') {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0a]">
         <div className="text-center">
           <p className="text-4xl mb-3 opacity-20">⚾</p>
           <h2 className="font-semibold text-zinc-300">Draft is not open</h2>
           <p className="text-zinc-600 text-sm mt-1">
-            Status: {contest.status}
+            Status: {effectiveStatus}
           </p>
         </div>
       </div>
