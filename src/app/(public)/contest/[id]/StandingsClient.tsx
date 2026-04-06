@@ -34,6 +34,19 @@ function apiToRow(s: ApiStanding, dateSet: Set<string>): StandingRow {
 // ─── Trend ────────────────────────────────────────────────────────────────────
 
 // Returns a map of standingId → rank delta (positive = moved up, negative = moved down, null = no prev data)
+// Return the cumulative value for a standing on the given date.  dailyValues
+// only contains entries for dates the team actually played, so if `date` has
+// no entry we carry-forward the most recent prior value (cumulative totals
+// don't change on off-days).  Falls back to 0 only if there's no data at all.
+function valueAtDate(dv: Record<string, number>, date: string, contestDates: string[]): number {
+  if (dv[date] !== undefined) return dv[date]
+  // Walk backwards through contestDates for the most recent known value
+  for (let i = contestDates.indexOf(date) - 1; i >= 0; i--) {
+    if (dv[contestDates[i]] !== undefined) return dv[contestDates[i]]
+  }
+  return 0
+}
+
 function computeTrend(
   standings: StandingRow[],
   contestDates: string[],
@@ -43,7 +56,7 @@ function computeTrend(
 
   const prevDate = contestDates[contestDates.length - 2]
   const withPrev = standings
-    .map((s) => ({ id: s.id, prevVal: s.dailyValues[prevDate] ?? 0 }))
+    .map((s) => ({ id: s.id, prevVal: valueAtDate(s.dailyValues, prevDate, contestDates) }))
     .sort((a, b) => higherIsBetter ? b.prevVal - a.prevVal : a.prevVal - b.prevVal)
 
   const prevRankMap = new Map<string, number>()
