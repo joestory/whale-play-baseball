@@ -67,16 +67,44 @@ export default function DraftClient({
       const data = await res.json()
       setSlots(data.slots)
       setPicks(data.picks)
+      // If status flipped to DRAFTING while we were watching, reload to get server-rendered state
+      if (data.status === 'DRAFTING' && contest.status !== 'DRAFTING') {
+        window.location.reload()
+      }
     } catch {
       // Silently ignore refresh failures
     }
-  }, [contest.id])
+  }, [contest.id, contest.status])
 
   useEffect(() => {
     if (contest.status !== 'DRAFTING') return
     const t = setInterval(refreshDraftState, 3_000)
     return () => clearInterval(t)
   }, [contest.status, refreshDraftState])
+
+  // When UPCOMING and past draftOpenAt, poll until status becomes DRAFTING
+  useEffect(() => {
+    if (contest.status !== 'UPCOMING') return
+    const openAt = new Date(contest.draftOpenAt).getTime()
+    let intervalId: ReturnType<typeof setInterval>
+
+    function startPolling() {
+      intervalId = setInterval(refreshDraftState, 5_000)
+    }
+
+    const msUntilOpen = openAt - Date.now()
+    let timeoutId: ReturnType<typeof setTimeout>
+    if (msUntilOpen <= 0) {
+      startPolling()
+    } else {
+      timeoutId = setTimeout(startPolling, msUntilOpen)
+    }
+
+    return () => {
+      clearTimeout(timeoutId)
+      clearInterval(intervalId)
+    }
+  }, [contest.status, contest.draftOpenAt, refreshDraftState])
 
   const pickedTeams = new Set(picks.map((p) => p.teamCode))
   const myCurrentSlot = mySlot
