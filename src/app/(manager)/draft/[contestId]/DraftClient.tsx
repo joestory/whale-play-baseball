@@ -313,6 +313,48 @@ export default function DraftClient({
       {/* Pick confirmation overlay */}
       {pendingTeam && (() => {
         const team = getTeam(pendingTeam)
+        const isRestricted = pendingTeam === 'PDX' && managerUsername !== 'Heff'
+
+        if (isRestricted) {
+          return (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center px-8"
+              style={{ background: 'rgba(0,0,0,0.7)' }}
+              onClick={() => setPendingTeam(null)}
+            >
+              <div
+                className="bg-[#111111] border border-red-500/30 rounded-2xl p-6 w-56 flex flex-col items-center gap-4 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex w-full justify-end">
+                  <button
+                    onClick={() => setPendingTeam(null)}
+                    className="text-zinc-600 hover:text-zinc-400 transition-colors text-lg leading-none"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-2xl">🚫</p>
+                <p className="text-[10px] font-semibold text-red-500 uppercase tracking-widest">Permission Denied</p>
+                {team?.logo && (
+                  <img src={team.logo} alt={team.name} className="w-14 h-14 object-contain grayscale opacity-40" />
+                )}
+                <p className="text-zinc-300 text-sm font-semibold text-center leading-snug">{team?.name ?? pendingTeam}</p>
+                <p className="text-zinc-500 text-xs text-center">
+                  Only Heff is allowed to draft this team.
+                </p>
+                <button
+                  onClick={() => setPendingTeam(null)}
+                  className="w-full py-2.5 rounded-xl bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-zinc-400 text-sm font-semibold transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div
             className="fixed inset-0 z-[60] flex items-center justify-center px-8"
