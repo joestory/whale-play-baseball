@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboardPage() {
   const contests = await prisma.contest.findMany({
     orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
