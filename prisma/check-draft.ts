@@ -8,7 +8,7 @@ const prisma = new PrismaClient({ adapter })
 
 async function main() {
   const c = await prisma.contest.findFirst({
-    where: { weekNumber: 2, season: 2025 },
+    where: { contestNumber: 2, season: 2025 },
     select: { id: true, status: true, draftOpenAt: true, draftCloseAt: true },
   })
   if (!c) { console.log('Contest week 2 not found'); return }

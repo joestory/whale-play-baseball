@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   const contests = await prisma.contest.findMany({
-    orderBy: [{ season: 'desc' }, { weekNumber: 'desc' }],
+    orderBy: [{ season: 'desc' }, { contestNumber: 'desc' }],
   })
   return NextResponse.json(contests)
 }
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const contest = await prisma.contest.create({
       data: {
         name: body.name,
-        weekNumber: Number(body.weekNumber),
+        contestNumber: Number(body.contestNumber),
         season: Number(body.season),
         metricName: body.metricName,
         metricDescription: body.metricDescription ?? null,

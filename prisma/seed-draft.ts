@@ -59,7 +59,7 @@ async function main() {
   }
 
   const existingContest = await prisma.contest.findFirst({
-    where: { season: 2025, weekNumber: 2 },
+    where: { season: 2025, contestNumber: 2 },
   })
 
   let contestId: string
@@ -74,7 +74,7 @@ async function main() {
     const contest = await prisma.contest.create({
       data: {
         name: 'Week 2 — 2025',
-        weekNumber: 2,
+        contestNumber: 2,
         season: 2025,
         metricName: 'Total Whiffs',
         metricDescription: "Sum of all pitches whiffed on by the drafted team's pitchers",

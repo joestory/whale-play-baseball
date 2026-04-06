@@ -56,7 +56,7 @@ export default function NewContestPage() {
 
   const [basic, setBasic] = useState({
     name: '',
-    weekNumber: '',
+    contestNumber: '',
     season: String(now.getFullYear()),
     metricName: '',
     metricDescription: '',
@@ -158,7 +158,7 @@ export default function NewContestPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Contest #">
-              <input type="number" value={basic.weekNumber} onChange={(e) => setBasicField('weekNumber', e.target.value)} className={inputClass} min={1} required />
+              <input type="number" value={basic.contestNumber} onChange={(e) => setBasicField('contestNumber', e.target.value)} className={inputClass} min={1} required />
             </Field>
             <Field label="Season">
               <input type="number" value={basic.season} onChange={(e) => setBasicField('season', e.target.value)} className={inputClass} required />

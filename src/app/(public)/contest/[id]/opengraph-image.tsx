@@ -28,7 +28,7 @@ export default async function Image({ params }: Props) {
     },
   })
 
-  const title = contest ? `${contest.name} — Week ${contest.weekNumber}` : 'Whale Play Baseball'
+  const title = contest ? `${contest.name} — Week ${contest.contestNumber}` : 'Whale Play Baseball'
   const metricName = contest?.metricName ?? ''
 
   // Only show standings for managers who picked
