@@ -105,9 +105,9 @@ export async function pollContest(
 
   // Exclude today and future-dated rows — Savant includes scheduled games that haven't
   // been played yet. Only include dates strictly before today (Eastern) so all data is complete.
-  const todayEastern = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+  const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
   const rows = config.dateColumn
-    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) < todayEastern)
+    ? allRows.filter((r) => !r[config.dateColumn!] || (r[config.dateColumn!] ?? '').slice(0, 10) < todayPacific)
     : allRows
 
   const teamTotals = aggregateByTeam(rows, config)
@@ -181,32 +181,32 @@ export async function pollContest(
   }
 }
 
-// Returns the start of today in Eastern time as a UTC Date, for date-boundary comparisons.
-// Matches the logic in computeDaysRemaining on the client: contests are not COMPLETED
-// until the day *after* endDate, so the final polling run can include the end date.
-function startOfTodayEastern(): Date {
-  const easternDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
-  return new Date(easternDateStr)
+// Returns the start of today in Pacific time as a UTC Date, for date-boundary comparisons.
+// Contests are not COMPLETED until the day *after* endDate, so the final polling run
+// can include the end date.
+function startOfTodayPacific(): Date {
+  const pacificDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  return new Date(pacificDateStr)
 }
 
 // Derive the correct ContestStatus purely from date fields and the current time.
-// Uses Eastern-timezone day boundaries for the COMPLETED transition.
+// Uses Pacific-timezone day boundaries for the COMPLETED transition.
 export function deriveContestStatus(
   contest: { draftOpenAt: Date; draftCloseAt: Date; endDate: Date },
   now = new Date(),
 ): 'UPCOMING' | 'DRAFTING' | 'ACTIVE' | 'COMPLETED' {
-  const todayEastern = startOfTodayEastern()
+  const todayPacific = startOfTodayPacific()
   if (now < contest.draftOpenAt) return 'UPCOMING'
   if (now < contest.draftCloseAt) return 'DRAFTING'
-  if (contest.endDate < todayEastern) return 'COMPLETED'
+  if (contest.endDate < todayPacific) return 'COMPLETED'
   return 'ACTIVE'
 }
 
 export async function checkContestStatuses(): Promise<void> {
   const now = new Date()
-  // Start of today in Eastern time — status does not advance to COMPLETED until the day
+  // Start of today in Pacific time — status does not advance to COMPLETED until the day
   // after endDate, so the final Savant poll is inclusive of the end date.
-  const todayEastern = startOfTodayEastern()
+  const todayPacific = startOfTodayPacific()
 
   await prisma.contest.updateMany({
     where: { status: 'UPCOMING', draftOpenAt: { lte: now } },
@@ -262,12 +262,12 @@ export async function checkContestStatuses(): Promise<void> {
 
   // Identify contests transitioning to COMPLETED so we can set draft order for their successors
   const aboutToComplete = await prisma.contest.findMany({
-    where: { status: 'ACTIVE', endDate: { lt: todayEastern } },
+    where: { status: 'ACTIVE', endDate: { lt: todayPacific } },
     select: { id: true, season: true, contestNumber: true },
   })
 
   await prisma.contest.updateMany({
-    where: { status: 'ACTIVE', endDate: { lt: todayEastern } },
+    where: { status: 'ACTIVE', endDate: { lt: todayPacific } },
     data: { status: 'COMPLETED' },
   })
 

@@ -10,6 +10,15 @@ const inputClass =
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+// Convert a Pacific date "YYYY-MM-DD" + time "HH:mm" to a UTC ISO string.
+function pacificToUtcIso(date: string, time: string): string {
+  const naiveUtc = new Date(`${date}T${time}:00Z`)
+  const pacificStr = naiveUtc.toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' })
+  const pacificAsUtc = new Date(pacificStr.replace(' ', 'T') + 'Z')
+  const offsetMs = naiveUtc.getTime() - pacificAsUtc.getTime()
+  return new Date(naiveUtc.getTime() + offsetMs).toISOString()
+}
+
 function MonthDayInput({ value, onChange, required }: { value: string; onChange: (v: string) => void; required?: boolean }) {
   const month = value.slice(5, 7)
   const day = value.slice(8, 10)
@@ -51,19 +60,20 @@ export default function NewContestPage() {
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
 
   const now = new Date()
-  const padDate = (d: Date) => d.toISOString().slice(0, 10)
-  const padTime = (d: Date) => d.toISOString().slice(11, 16)
+  const pacificDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  const pacificTime = now.toLocaleTimeString('en-GB', { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', hour12: false })
+  const pacificYear = parseInt(pacificDate.slice(0, 4))
 
   const [basic, setBasic] = useState({
     name: '',
     contestNumber: '',
-    season: String(now.getFullYear()),
+    season: String(pacificYear),
     metricName: '',
     metricDescription: '',
-    startDate: padDate(now),
-    endDate: padDate(new Date(now.getTime() + 7 * 86400000)),
-    draftOpenAt: padDate(now),
-    draftTime: padTime(now),
+    startDate: pacificDate,
+    endDate: new Date(now.getTime() + 7 * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+    draftOpenAt: pacificDate,
+    draftTime: pacificTime,
     cascadeWindowMinutes: '1',
     savantCsvUrl: '',
   })
@@ -118,8 +128,8 @@ export default function NewContestPage() {
 
     setSubmitting(true)
     try {
-      const draftOpenAt = `${basic.draftOpenAt}T${basic.draftTime}`
-      const draftCloseAt = new Date(new Date(draftOpenAt).getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16)
+      const draftOpenAt = pacificToUtcIso(basic.draftOpenAt, basic.draftTime)
+      const draftCloseAt = new Date(new Date(draftOpenAt).getTime() + 3 * 60 * 60 * 1000).toISOString()
       const res = await fetch('/api/admin/contests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,7 +202,7 @@ export default function NewContestPage() {
             <Field label="Draft Opens">
               <MonthDayInput value={basic.draftOpenAt} onChange={(v) => setBasicField('draftOpenAt', v)} required />
             </Field>
-            <Field label="Draft Start (EST)">
+            <Field label="Draft Start (Pacific)">
               <input type="time" value={basic.draftTime} onChange={(e) => setBasicField('draftTime', e.target.value)} className={inputClass} required />
             </Field>
           </div>

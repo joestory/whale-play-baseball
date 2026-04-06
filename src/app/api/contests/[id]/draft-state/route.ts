@@ -7,7 +7,8 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const [slots, picks] = await Promise.all([
+  const [contest, slots, picks] = await Promise.all([
+    prisma.contest.findUnique({ where: { id }, select: { status: true } }),
     prisma.draftSlot.findMany({
       where: { contestId: id },
       orderBy: { pickOrder: 'asc' },
@@ -26,6 +27,7 @@ export async function GET(
 
   return NextResponse.json({
     contestId: id,
+    status: contest?.status ?? null,
     eligibleManagerIds,
     slots: slots.map((s) => ({
       managerId: s.managerId,

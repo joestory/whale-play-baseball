@@ -60,13 +60,22 @@ const inputClass =
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-// Parse a UTC datetime string ("YYYY-MM-DDTHH:mm", no Z) into local date/time parts.
-function utcStringToLocalParts(utcStr: string): { date: string; time: string } {
+// Parse a UTC datetime string ("YYYY-MM-DDTHH:mm", no Z) into Pacific date/time parts.
+function utcStringToPacificParts(utcStr: string): { date: string; time: string } {
   const d = new Date(utcStr + 'Z')
   return {
-    date: d.toLocaleDateString('en-CA'),
-    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    date: d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+    time: d.toLocaleTimeString('en-GB', { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', hour12: false }),
   }
+}
+
+// Convert a Pacific date "YYYY-MM-DD" + time "HH:mm" to a UTC ISO string.
+function pacificToUtcIso(date: string, time: string): string {
+  const naiveUtc = new Date(`${date}T${time}:00Z`)
+  const pacificStr = naiveUtc.toLocaleString('sv-SE', { timeZone: 'America/Los_Angeles' })
+  const pacificAsUtc = new Date(pacificStr.replace(' ', 'T') + 'Z')
+  const offsetMs = naiveUtc.getTime() - pacificAsUtc.getTime()
+  return new Date(naiveUtc.getTime() + offsetMs).toISOString()
 }
 
 function MonthDayInput({ value, onChange, required }: { value: string; onChange: (v: string) => void; required?: boolean }) {
@@ -138,8 +147,8 @@ export default function ContestAdminClient({
 
   const nonAdminManagers = allManagers.filter((m) => !m.isAdmin)
 
-  // Edit form state — draft time converted from stored UTC string to user's local time
-  const localDraft = utcStringToLocalParts(contest.draftOpenAt)
+  // Edit form state — draft time converted from stored UTC string to Pacific time
+  const localDraft = utcStringToPacificParts(contest.draftOpenAt)
   const [form, setForm] = useState({
     name: contest.name,
     contestNumber: String(contest.contestNumber),
@@ -233,9 +242,8 @@ export default function ContestAdminClient({
 
     setSavingEdit(true)
     try {
-      const draftLocalMs = new Date(`${form.draftOpenAt}T${form.draftTime}:00`).getTime()
-      const draftOpenAt = new Date(draftLocalMs).toISOString()
-      const draftCloseAt = new Date(draftLocalMs + 3 * 60 * 60 * 1000).toISOString()
+      const draftOpenAt = pacificToUtcIso(form.draftOpenAt, form.draftTime)
+      const draftCloseAt = new Date(new Date(draftOpenAt).getTime() + 3 * 60 * 60 * 1000).toISOString()
       const res = await fetch(`/api/admin/contests/${contest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -546,7 +554,7 @@ export default function ContestAdminClient({
         <Field label="Draft Opens">
           <MonthDayInput value={form.draftOpenAt} onChange={(v) => set('draftOpenAt', v)} required />
         </Field>
-        <Field label="Draft Start">
+        <Field label="Draft Start (Pacific)">
           <input type="time" value={form.draftTime} onChange={(e) => set('draftTime', e.target.value)} className={inputClass} required />
         </Field>
         <p className="text-xs text-zinc-600">Draft closes 3 hrs after open</p>
@@ -671,8 +679,9 @@ export default function ContestAdminClient({
               <select
                 defaultValue=""
                 onChange={(e) => {
-                  if (e.target.value) {
-                    setOrderedIds((ids) => [...ids, e.target.value])
+                  const id = e.target.value
+                  if (id) {
+                    setOrderedIds((ids) => [...ids, id])
                     e.target.value = ''
                   }
                 }}
