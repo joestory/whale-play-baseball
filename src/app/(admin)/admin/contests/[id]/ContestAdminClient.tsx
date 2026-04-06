@@ -141,6 +141,21 @@ export default function ContestAdminClient({
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
   const [hidden, setHidden] = useState(contest.hidden)
   const [contestStatus, setContestStatus] = useState(contest.status)
+
+  // Derive the effective status from the clock — stays accurate even when the cron is behind.
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 10_000)
+    return () => clearInterval(t)
+  }, [])
+  const effectiveStatus = (() => {
+    if (contestStatus !== 'UPCOMING') return contestStatus
+    const open = new Date(contest.draftOpenAt + 'Z')
+    const close = new Date(contest.draftCloseAt + 'Z')
+    if (now >= open && now < close) return 'DRAFTING'
+    if (now >= close) return 'ACTIVE'
+    return 'UPCOMING'
+  })()
   const [togglingHidden, setTogglingHidden] = useState(false)
   const [sweepstakesPhoto, setSweepstakesPhoto] = useState<string | null>(contest.sweepstakesPhoto)
   const [photoFileName, setPhotoFileName] = useState<string | null>(null)
@@ -473,8 +488,8 @@ export default function ContestAdminClient({
       <form onSubmit={handleSaveEdit} className={`${card} p-4 space-y-4`}>
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Contest Details</h2>
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[contestStatus] ?? ''}`}>
-            {contestStatus}
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColors[effectiveStatus] ?? ''}`}>
+            {effectiveStatus}{effectiveStatus !== contestStatus ? ' *' : ''}
           </span>
         </div>
 
