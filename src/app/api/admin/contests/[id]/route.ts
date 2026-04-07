@@ -89,6 +89,7 @@ export async function PATCH(
   if (body.cascadeWindowMinutes !== undefined) updateData.cascadeWindowMinutes = Number(body.cascadeWindowMinutes)
   if (body.status !== undefined) updateData.status = body.status
   if (body.hidden !== undefined) updateData.hidden = body.hidden
+  if (body.pdxFirst !== undefined) updateData.pdxFirst = body.pdxFirst
   if (body.sweepstakesPhoto !== undefined) updateData.sweepstakesPhoto = body.sweepstakesPhoto
 
   const draftOpenAtChanged = body.draftOpenAt !== undefined

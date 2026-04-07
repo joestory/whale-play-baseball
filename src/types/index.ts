@@ -23,6 +23,7 @@ export type MetricConfig = {
   aggregation: MetricAggregationStep[]
   unit: string                    // display unit e.g. "HR" or "%"
   higherIsBetter?: boolean        // default true; false for metrics like ERA
+  teamSide?: 'batting' | 'pitching' // which team the metric is attributed to
   relatedMetrics?: RelatedMetric[]
 }
 
