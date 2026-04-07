@@ -68,6 +68,7 @@ export default function StandingsClient({
   initialStandings,
   contestDates,
   contestEndDate,
+  pdxFirst = false,
 }: {
   contestId: string
   contestStatus: string
@@ -76,6 +77,7 @@ export default function StandingsClient({
   initialStandings: StandingRow[]
   contestDates: string[]
   contestEndDate: string
+  pdxFirst?: boolean
 }) {
   const [standings, setStandings] = useState(initialStandings)
   const [lastPolledAt, setLastPolledAt] = useState(initialLastPolledAt)
@@ -159,7 +161,68 @@ export default function StandingsClient({
 
       {standings.length > 0 ? (
         <div className="space-y-2">
-          {standings.map((s) => {
+          {(pdxFirst
+            ? [...standings.filter((s) => s.teamCode === 'PDX'), ...standings.filter((s) => s.teamCode !== 'PDX')]
+            : standings
+          ).map((s) => {
+            if (pdxFirst && s.teamCode === 'PDX') {
+              return (
+                <div
+                  key={s.id}
+                  className="relative overflow-hidden rounded-xl border-2 border-emerald-500/60 px-4 py-5"
+                  style={{ background: 'linear-gradient(135deg, #0a1f14 0%, #111111 50%, #0d1a10 100%)' }}
+                >
+                  {/* Animated glow ring */}
+                  <div className="absolute inset-0 rounded-xl animate-pulse"
+                    style={{ boxShadow: 'inset 0 0 30px rgba(52,211,153,0.07)' }} />
+                  {/* Corner shimmer accents */}
+                  <div className="absolute top-0 left-0 w-16 h-16 rounded-br-full opacity-20"
+                    style={{ background: 'radial-gradient(circle at top left, #34d399, transparent)' }} />
+                  <div className="absolute bottom-0 right-0 w-20 h-20 rounded-tl-full opacity-15"
+                    style={{ background: 'radial-gradient(circle at bottom right, #34d399, transparent)' }} />
+
+                  <div className="relative flex items-center gap-3">
+                    {/* Trophy + rank */}
+                    <div className="flex-shrink-0 text-center w-10">
+                      <div className="text-3xl leading-none mb-1">🏆</div>
+                      <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">1st</div>
+                    </div>
+
+                    {/* Team logo — larger */}
+                    {s.teamLogo && (
+                      <img
+                        src={s.teamLogo}
+                        alt={s.teamName}
+                        className="w-12 h-12 object-contain shrink-0 drop-shadow-lg"
+                        style={{ filter: 'drop-shadow(0 0 8px rgba(52,211,153,0.4))' }}
+                      />
+                    )}
+
+                    {/* Manager info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">
+                        First Place
+                      </p>
+                      <p className="font-bold text-white truncate text-base leading-tight">
+                        <span className="mr-1">{s.managerIcon}</span>
+                        {s.managerUsername}
+                      </p>
+                      <p className="text-xs text-emerald-700 font-medium">{s.teamName}</p>
+                    </div>
+
+                    {/* Metric value */}
+                    <div className="text-right shrink-0">
+                      <p className="text-4xl font-black tabular-nums leading-none"
+                        style={{ color: '#34d399', textShadow: '0 0 20px rgba(52,211,153,0.5)' }}>
+                        1
+                      </p>
+                      <p className="text-[10px] text-emerald-700 font-medium mt-1">{metricName}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             const trend = trendMap.get(s.id) ?? null
             return (
               <div

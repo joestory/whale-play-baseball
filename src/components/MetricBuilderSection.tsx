@@ -56,6 +56,7 @@ function buildMetricConfig(
   primary: MetricDef,
   related: MetricDef[],
   higherIsBetter: boolean,
+  teamSide: 'batting' | 'pitching',
 ): MetricConfig {
   const { columns, steps } = buildAggregation(primary)
   const relatedMetrics: RelatedMetric[] = related.map((r, i) => {
@@ -69,6 +70,7 @@ function buildMetricConfig(
     aggregation: steps,
     unit: primary.unit,
     higherIsBetter,
+    teamSide,
     relatedMetrics: relatedMetrics.length > 0 ? relatedMetrics : undefined,
   }
 }
@@ -101,6 +103,7 @@ function parseMetricDef(
 function parseMetricConfig(config: MetricConfig) {
   return {
     higherIsBetter: config.higherIsBetter !== false,
+    teamSide: config.teamSide ?? 'batting' as 'batting' | 'pitching',
     primary: parseMetricDef(config.columns, config.aggregation as MetricAggregationStep[], '', config.unit),
     related: (config.relatedMetrics ?? []).map((r) =>
       parseMetricDef(r.columns, r.aggregation as MetricAggregationStep[], r.name, r.unit)
@@ -240,15 +243,16 @@ export default function MetricBuilderSection({
   const parsed = initialConfig ? parseMetricConfig(initialConfig) : null
 
   const [higherIsBetter, setHigherIsBetter] = useState(parsed?.higherIsBetter ?? true)
+  const [teamSide, setTeamSide] = useState<'batting' | 'pitching'>(parsed?.teamSide ?? 'batting')
   const [primary, setPrimary] = useState<MetricDef>(parsed?.primary ?? emptyMetric())
   const [related, setRelated] = useState<MetricDef[]>(parsed?.related ?? [])
   const effectiveHeaders = availableColumns ?? []
 
   useEffect(() => {
-    onChange(buildMetricConfig(primary, related, higherIsBetter))
+    onChange(buildMetricConfig(primary, related, higherIsBetter, teamSide))
   // onChange is a stable setState setter — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [primary, related, higherIsBetter])
+  }, [primary, related, higherIsBetter, teamSide])
 
   return (
     <div className="space-y-4">
@@ -263,6 +267,14 @@ export default function MetricBuilderSection({
       {/* Primary metric */}
       <div className="border border-[#262626] rounded-lg p-3 space-y-3 bg-[#1a1a1a]">
         <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Primary Metric</p>
+
+        <Field label="Attributed to" hint="Which team the stat is counted against">
+          <Switch<'batting' | 'pitching'>
+            options={[{ label: 'Batting Team', value: 'batting' }, { label: 'Pitching Team', value: 'pitching' }]}
+            value={teamSide}
+            onChange={setTeamSide}
+          />
+        </Field>
 
         <Field label="Higher Score Wins?">
           <Switch<boolean>

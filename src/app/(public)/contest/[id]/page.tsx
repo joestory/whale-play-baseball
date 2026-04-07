@@ -65,6 +65,13 @@ export default async function ContestPage({ params }: Props) {
     COMPLETED: 'Final',
   }
 
+  const teamSide: 'batting' | 'pitching' | undefined = (() => {
+    try {
+      const cfg = contest.metricConfig as { teamSide?: 'batting' | 'pitching' }
+      return cfg?.teamSide
+    } catch { return undefined }
+  })()
+
   return (
     <div className="min-h-screen pb-24">
       <header className="bg-[#0a0a0a] border-b border-[#1f1f1f] px-4 py-4 sticky top-0 z-10">
@@ -86,6 +93,14 @@ export default async function ContestPage({ params }: Props) {
             <span className="text-zinc-500">Metric</span>
             <span className="font-medium text-zinc-200">{contest.metricName}</span>
           </div>
+          {teamSide && (
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Attributed to</span>
+              <span className="font-medium text-zinc-200">
+                {teamSide === 'batting' ? 'Batting Team' : 'Pitching Team'}
+              </span>
+            </div>
+          )}
           {contest.metricDescription && (
             <div className="flex justify-between text-sm">
               <span className="text-zinc-500">Description</span>
@@ -112,6 +127,7 @@ export default async function ContestPage({ params }: Props) {
           initialStandings={initialStandings}
           contestDates={contestDates}
           contestEndDate={contest.endDate.toISOString().slice(0, 10)}
+          pdxFirst={contest.pdxFirst}
         />
 
         {/* Metric explainer — editorial story authored by the commissioner */}

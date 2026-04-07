@@ -16,6 +16,7 @@ type ContestInfo = {
   commissionerMessage: string
   metricExplainer: string
   hidden: boolean
+  pdxFirst: boolean
   sweepstakesPhoto: string | null
   status: string
   savantCsvUrl: string
@@ -140,6 +141,8 @@ export default function ContestAdminClient({
   const [columnFetchStatus, setColumnFetchStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [columnFetchMessage, setColumnFetchMessage] = useState('')
   const [hidden, setHidden] = useState(contest.hidden)
+  const [pdxFirst, setPdxFirst] = useState(contest.pdxFirst)
+  const [togglingPdxFirst, setTogglingPdxFirst] = useState(false)
   const [contestStatus, setContestStatus] = useState(contest.status)
 
   // Derive the effective status from the clock — stays accurate even when the cron is behind.
@@ -242,6 +245,20 @@ export default function ContestAdminClient({
       if (res.ok) setHidden((h) => !h)
     } finally {
       setTogglingHidden(false)
+    }
+  }
+
+  async function handleTogglePdxFirst() {
+    setTogglingPdxFirst(true)
+    try {
+      const res = await fetch(`/api/admin/contests/${contest.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdxFirst: !pdxFirst }),
+      })
+      if (res.ok) setPdxFirst((v) => !v)
+    } finally {
+      setTogglingPdxFirst(false)
     }
   }
 
@@ -630,6 +647,26 @@ export default function ContestAdminClient({
           {polling ? 'Polling…' : 'Poll Now'}
         </button>
         {pollMessage && <p className="text-sm text-zinc-400">{pollMessage}</p>}
+      </div>
+
+      {/* ── PDX Rendering ── */}
+      <div className={`${card} p-4 space-y-3`}>
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">PDX Rendering</h2>
+        <p className="text-xs text-zinc-600">When enabled, PDX is displayed in 1st place with a metric value of 1.</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleTogglePdxFirst}
+            disabled={togglingPdxFirst}
+            className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors disabled:opacity-40 ${
+              pdxFirst
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+                : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+            }`}
+          >
+            {togglingPdxFirst ? '…' : pdxFirst ? 'Yes' : 'No'}
+          </button>
+          <span className="text-xs text-zinc-500">{pdxFirst ? 'PDX will appear 1st with metric value 1' : 'PDX will appear last as usual'}</span>
+        </div>
       </div>
 
       {/* ── Draft order ── */}

@@ -44,6 +44,7 @@ export default async function AdminContestPage({
         commissionerMessage: contest.commissionerMessage ?? '',
         metricExplainer: contest.metricExplainer ?? '',
         hidden: contest.hidden,
+        pdxFirst: contest.pdxFirst,
         status: contest.status,
         savantCsvUrl: contest.savantCsvUrl,
         metricConfig: JSON.stringify(contest.metricConfig, null, 2),
