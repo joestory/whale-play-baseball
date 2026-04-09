@@ -15,7 +15,7 @@ npm install
 cp .env.example .env.local
 # Edit .env.local with your local DATABASE_URL and secrets
 npx prisma migrate dev
-npx tsx prisma/seed.ts
+npm run seed
 npm run dev
 ```
 
@@ -54,6 +54,12 @@ See `.env.example` for all required variables.
 | `AUTH_URL` | App URL (http://localhost:3000 locally) |
 | `CRON_SECRET` | Secret for the daily polling endpoint |
 
+## Running Tests
+
+```bash
+npm run test
+```
+
 ## Testing the Cron Locally
 
 ```bash
@@ -85,7 +91,7 @@ chore/<short-name>      Config, deps, non-code changes
 
 1. Branch from `main`
 2. Write a clear PR description: what changed and why
-3. Ensure `npm run lint` and `npx tsc --noEmit` pass locally
+3. Ensure `npm run lint`, `npm run test`, and `npx tsc --noEmit` pass locally
 4. Request review if working with other contributors
 5. Merge when CI is green
 
