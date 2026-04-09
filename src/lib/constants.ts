@@ -41,6 +41,7 @@ export const MLB_TEAMS: TeamInfo[] = [
 // Baseball Savant sometimes uses different abbreviations — normalize them here
 export const SAVANT_TEAM_MAP: Record<string, string> = {
   ARI: 'ARI',
+  AZ:  'ARI', // Baseball Savant uses AZ for Arizona Diamondbacks
   ATL: 'ATL',
   BAL: 'BAL',
   BOS: 'BOS',
