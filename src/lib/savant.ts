@@ -129,6 +129,16 @@ export async function pollContest(
   const ranks = computeRanks(rankingValues, config.higherIsBetter !== false)
   if (pdxManagerId) ranks.set(pdxManagerId, contest.picks.length)
 
+  const changes: string[] = []
+  for (const [managerId, newValue] of managerValues) {
+    const prev = prevValues.get(managerId) ?? 0
+    if (Math.abs(newValue - prev) > 0.0001) {
+      changes.push(`manager ${managerId}: ${prev} → ${newValue}`)
+    }
+  }
+
+  const changed = changes.length > 0
+
   const upserts = contest.picks.map((pick) =>
     prisma.standing.upsert({
       where: { contestId_managerId: { contestId, managerId: pick.managerId } },
@@ -147,23 +157,15 @@ export async function pollContest(
         teamCode: pick.teamCode,
         metricValue: managerValues.get(pick.managerId) ?? 0,
         rank: ranks.get(pick.managerId) ?? null,
-        previousRank: prevRanks.get(pick.managerId) ?? null,
+        // Only snapshot previousRank when data actually changed — preserves the trend
+        // from the last real data update across no-change polls and force polls.
+        ...(changed ? { previousRank: prevRanks.get(pick.managerId) ?? null } : {}),
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
         dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
       },
     })
   )
-
-  const changes: string[] = []
-  for (const [managerId, newValue] of managerValues) {
-    const prev = prevValues.get(managerId) ?? 0
-    if (Math.abs(newValue - prev) > 0.0001) {
-      changes.push(`manager ${managerId}: ${prev} → ${newValue}`)
-    }
-  }
-
-  const changed = changes.length > 0
 
   // Only update lastPolledAt when data actually changed — this both timestamps
   // the true last data refresh (shown in the UI) and acts as the "already updated
