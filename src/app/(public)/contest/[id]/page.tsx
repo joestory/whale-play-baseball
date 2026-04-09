@@ -35,13 +35,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `Leader: ${leader.manager.username} with ${leader.metricValue.toFixed(leader.metricValue % 1 === 0 ? 0 : 2)} ${contest.metricName}`
     : `${contest.metricName} — standings update nightly`
 
+  const title = `${contest.name} — Week ${contest.contestNumber} Standings`
+
   return {
-    title: `${contest.name} — Week ${contest.contestNumber} Standings`,
+    title,
     description,
     openGraph: {
-      title: `${contest.name} — Week ${contest.contestNumber} Standings`,
+      title,
       description,
       siteName: 'Whale Play Baseball',
+      images: [{ url: `/contest/${id}/opengraph-image`, width: 1200, height: 630 }],
     },
   }
 }
