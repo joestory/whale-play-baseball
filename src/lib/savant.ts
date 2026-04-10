@@ -157,9 +157,12 @@ export async function pollContest(
         teamCode: pick.teamCode,
         metricValue: managerValues.get(pick.managerId) ?? 0,
         rank: ranks.get(pick.managerId) ?? null,
-        // Only snapshot previousRank when data actually changed — preserves the trend
-        // from the last real data update across no-change polls and force polls.
-        ...(changed ? { previousRank: prevRanks.get(pick.managerId) ?? null } : {}),
+        // Update previousRank unless this is a force poll with no data change.
+        // - Data changed: snapshot rank before the change (correct delta).
+        // - No change, regular cron: still update so previousRank = current rank
+        //   (which equals the last data update's rank — trend correctly stays 0).
+        // - No change, force poll: skip, so a manual re-poll can't erase a real trend.
+        ...(changed || !force ? { previousRank: prevRanks.get(pick.managerId) ?? null } : {}),
         dailyValues: teamDaily.get(pick.teamCode) ?? {},
         relatedValues: teamRelated.get(pick.teamCode) ?? {},
         dailyOpponents: teamOpponents.get(pick.teamCode) ?? {},
